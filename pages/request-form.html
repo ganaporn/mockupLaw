@@ -767,10 +767,9 @@ function onApprovedUnitChange() {
   const el   = document.getElementById('case-no-gen');
   if (!unit || !el) return;
   if (el.value) return; // ไม่เขียนทับถ้ากรอกข้อมูลไว้แล้ว
-  const prefix = (CASE_NO_MAP[unit] && type) ? CASE_NO_MAP[unit][type] : (unit === 'PREPARE' ? 'ตค' : unit === 'LITIGATION' ? 'คด' : 'บค');
-  const year = '2569';
-  const seq  = String(Math.floor(Math.random() * 900) + 100).padStart(4, '0');
-  el.value = `${prefix}.${year}/${seq}`;
+  const beYear = String((new Date().getFullYear() + 543) % 100).padStart(2, '0');
+  const seq    = String(Math.floor(Math.random() * 9000) + 1000).padStart(4, '0');
+  el.value = `คดี-${beYear}-${seq}`;
   // show tracking link once case_no is generated
   const trackRow  = document.getElementById('tracking-link-row');
   const trackNo   = document.getElementById('tracking-case-no');
@@ -890,7 +889,7 @@ const MOCK_REQ_DETAIL = {
        org_subtype:'OTHER', org_cause:'OTHER' },
   4: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 2', debt:'CONTRACT_BREACH',
        title:'รถร่วมสาย 8 ค้างชำระค่าตอบแทน 24 งวด', amount:120000, status:'APPROVED_CREATE_CASE',
-       approved_unit:'PREPARE', case_no:'ตค.รร.2569/0041',
+       approved_unit:'PREPARE', case_no:'คดี-69-0041',
        contract_party:'นายวิทยา โชคดี', vehicle_reg:'14-4521 กรุงเทพมหานคร', contract_no:'รต.08-044/2550', case_type:'NEW',
        detail_text:'ค้างชำระค่าตอบแทน 24 งวด ตั้งแต่เดือน เม.ย. 2566 รวมยอดหนี้ 120,000 บาท' },
   5: { type:'ACCIDENT', source:'เขตการเดินรถที่ 1', debt:'ACCIDENT_DEBT',
@@ -907,7 +906,7 @@ const MOCK_REQ_DETAIL = {
        detail_text:'สัญญาซื้อขายอะไหล่รถโดยสาร ประจำปี 2568 วงเงิน 2.5 ล้านบาท' },
   7: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 1', debt:'CONTRACT_BREACH',
        title:'รถร่วมสาย 62 ผิดนัดชำระหนี้ค่าตอบแทนรายเดือน 12 งวด', amount:62000, status:'APPROVED_CREATE_CASE',
-       approved_unit:'LITIGATION', case_no:'คด.รร.2569/0078',
+       approved_unit:'LITIGATION', case_no:'คดี-69-0078',
        contract_party:'นางสาวพรพิมล เชียงทอง', vehicle_reg:'14-8834 กรุงเทพมหานคร', contract_no:'รต.62-078/2554', case_type:'NEW',
        detail_text:'ค้างชำระค่าตอบแทน 12 งวด รวมยอดหนี้ 62,000 บาท' },
   8: { type:'ORG_DEFENDANT', source:'เขตการเดินรถที่ 5', debt:'ACCIDENT_DEBT',
@@ -919,7 +918,7 @@ const MOCK_REQ_DETAIL = {
        detail_text:'ค้างชำระหนี้หลักประกัน ริบหลักประกันแล้ว แต่ยังคงค้างชำระส่วนที่เหลือ' },
   10: { type:'ACCIDENT', source:'เขตการเดินรถที่ 7', debt:'ACCIDENT_DEBT',
         title:'อุบัติเหตุรถสาย 191 ชนรั้วบ้านเอกชน ย่านบางแค', amount:28000, status:'APPROVED_CREATE_CASE',
-        approved_unit:'PREPARE', case_no:'ตค.อบ.2569/0025',
+        approved_unit:'PREPARE', case_no:'คดี-69-0025',
         accident_no:'1-2569-6-0425', accident_date:'2026-05-31', accident_zone:'เขตการเดินรถที่ 7',
         vehicle:'40-5567 กรุงเทพมหานคร', route:'สาย 191', driver:'นายชาตรี แก้วใส',
         victim:'นายมนตรี บ้านสวน', location:'ซ.เพชรเกษม 69 แขวงบางแค เขตบางแค กรุงเทพมหานคร',
