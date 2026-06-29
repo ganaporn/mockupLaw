@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำขอสร้างคดี - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+    <div class="page-header d-flex align-center justify-between">
+      <div>
+        <h1 class="page-title">คำขอสร้างคดี</h1>
+        <p class="page-subtitle">รายการคำขอที่ส่งเข้ามายังกลุ่มงานคดีจากทุกหน่วยงาน</p>
+      </div>
+      <a href="request-form.html" class="btn-custom btn-primary">＋ สร้างคำขอใหม่</a>
+    </div>
+
+    <!-- Alert -->
+    
+
+    <!-- Status Summary -->
+    <div class="grid-4 mb-16" id="req-summary"></div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <div class="filter-group" style="flex:1;">
+        <label class="filter-label">ค้นหา</label>
+        <input type="text" id="req-search" class="filter-input" placeholder="เลขคำขอ / เรื่อง / ผู้ยื่น...">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">ประเภท</label>
+        <select id="req-type" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option value="ACCIDENT">งานอุบัติเหตุ</option>
+          <option value="CONTRACT_MANAGEMENT">งานบริหารสัญญา</option>
+          <option value="LEGAL_CONTRACT">นิติกรรมสัญญา</option>
+          <option value="ORG_DEFENDANT">องค์การถูกฟ้อง</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">สถานะ</label>
+        <select id="req-status" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option value="DRAFT">ร่าง</option>
+          <option value="SUBMITTED">รอพิจารณา</option>
+          <option value="UNDER_REVIEW">กำลังตรวจสอบ</option>
+          <option value="APPROVED_CREATE_CASE">อนุมัติ</option>
+          <option value="REJECTED">ปฏิเสธ</option>
+        </select>
+      </div>
+      <button class="btn-custom btn-primary" onclick="renderRequests()">🔍 ค้นหา</button>
+      <button class="btn-custom btn-secondary" onclick="clearReq()">รีเซ็ต</button>
+    </div>
+
+    <!-- Tabs: By Status -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-body-custom" style="padding:12px 20px;">
+        <div class="tabs-nav" id="req-tabs">
+          <button class="tab-btn active" data-st="">ทั้งหมด</button>
+          <button class="tab-btn" data-st="SUBMITTED">🟡 รอพิจารณา</button>
+          <button class="tab-btn" data-st="UNDER_REVIEW">🔵 กำลังตรวจสอบ</button>
+          <button class="tab-btn" data-st="APPROVED_CREATE_CASE">✅ อนุมัติแล้ว</button>
+          <button class="tab-btn" data-st="REJECTED">🔴 ปฏิเสธ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Requests Table -->
+    <div class="card">
+      <div class="card-header-custom">
+        รายการคำขอ
+        <span id="req-count" style="font-size:20px;font-weight:400;color:#71767a;"></span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table-custom">
+          <thead><tr>
+            <th>เลขคำขอ</th>
+            <th>ประเภท</th>
+            <th>หน่วยงาน</th>
+            <th>เรื่อง</th>
+            <th>ผู้ยื่น</th>
+            <th>วันที่ยื่น</th>
+            <th>สถานะ</th>
+            <th>การดำเนินการ</th>
+          </tr></thead>
+          <tbody id="req-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ─── Modal: ตรวจสอบคำขอ ────────────────────────────────── -->
+<div class="modal-overlay" id="modal-review-req">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="review-req-title">พิจารณาคำขอ REQ-68-0021</span>
+      <button class="modal-close" onclick="closeModal('modal-review-req')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#f8fafc;padding:14px;border-radius:8px;margin-bottom:16px;font-size:22px;">
+        <div class="info-grid">
+          <div class="info-item"><div class="info-label">เลขคำขอ</div><div class="info-value">REQ-68-0021</div></div>
+          <div class="info-item"><div class="info-label">ประเภท</div><div class="info-value">งานบริหารสัญญา</div></div>
+          <div class="info-item"><div class="info-label">ผู้ยื่น</div><div class="info-value">น.ส.มณี ทองดี</div></div>
+          <div class="info-item"><div class="info-label">วันที่ยื่น</div><div class="info-value">20 มิ.ย. 2568</div></div>
+        </div>
+        <div style="margin-top:10px;"><strong>เรื่อง:</strong> รถร่วมสาย 40 ผิดสัญญาค้างชำระ 18 งวด</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ผลการพิจารณา <span class="req">*</span></label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="req-decision" value="APPROVED_CREATE_CASE"> 
+            <span>อนุมัติ (สร้างคดีทันที)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="req-decision" value="REQUEST_MORE_DOCUMENT"> 
+            <span>ขอเอกสารเพิ่มเติม</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="radio" name="req-decision" value="REJECTED"> 
+            <span>ปฏิเสธ</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หน่วยงานที่รับผิดชอบ</label>
+        <select class="form-control-custom">
+          <option>เตรียมคดี</option><option>กลุ่มงานคดี</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ผู้รับผิดชอบ</label>
+        <select class="form-control-custom">
+          <option>-- เลือก --</option>
+          <option>นายวิรัตน์ สมใจ</option>
+          <option>นางสาวสุนิตรา ภูวา</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-control-custom" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-review-req')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="alert('บันทึกผลการพิจารณา (mockup)');closeModal('modal-review-req')">บันทึกผล</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('request');
+document.getElementById('topbar').innerHTML = buildTopbar('คดี', 'คำขอสร้างคดี');
+
+// ─── Summary ──────────────────────────────────────────────────
+const reqStatusConf = [
+  { label:'รอพิจารณา',     icon:'📬', iconClass:'orange', st:'SUBMITTED' },
+  { label:'กำลังตรวจสอบ', icon:'🔍', iconClass:'blue',   st:'UNDER_REVIEW' },
+  { label:'อนุมัติ',  icon:'✅', iconClass:'green',  st:'APPROVED_CREATE_CASE' },
+  { label:'ทั้งหมด',       icon:'📥', iconClass:'purple', st:'' }
+].map(s => ({
+  ...s,
+  count: s.st ? MOCK_REQUESTS.filter(r => r.status === s.st).length : MOCK_REQUESTS.length
+}));
+document.getElementById('req-summary').innerHTML = reqStatusConf.map(s => `
+  <div class="kpi-card" style="cursor:pointer;" onclick="filterByStatus('${s.st}')">
+    <div class="kpi-icon ${s.iconClass}">${s.icon}</div>
+    <div><div class="kpi-value">${s.count}</div><div class="kpi-label">${s.label}</div></div>
+  </div>`).join('');
+
+// ─── Active Status Tab ────────────────────────────────────────
+let activeReqStatus = '';
+document.getElementById('req-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#req-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeReqStatus = btn.dataset.st;
+  renderRequests();
+});
+
+function filterByStatus(st) {
+  activeReqStatus = st;
+  document.querySelectorAll('#req-tabs .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.st === st);
+  });
+  renderRequests();
+}
+
+// ─── Render Requests ──────────────────────────────────────────
+function renderRequests() {
+  const q = document.getElementById('req-search').value.toLowerCase();
+  const type = document.getElementById('req-type').value;
+  const st = document.getElementById('req-status').value || activeReqStatus;
+
+  const list = MOCK_REQUESTS.filter(r => {
+    if (st && r.status !== st) return false;
+    if (type && r.req_type !== type) return false;
+    if (q && !(r.req_no + r.title + r.req_by + r.req_source).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  document.getElementById('req-count').textContent = `(${list.length} รายการ)`;
+
+  const tbody = document.getElementById('req-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-text">ไม่พบคำขอ</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => {
+    const actionBtns = `<a href="request-form.html?req=${r.req_id}" class="btn-custom btn-secondary btn-xs">รายละเอียด</a>`;
+
+    return `<tr>
+      <td class="case-no">${r.req_no}</td>
+      <td><span style="font-size:20px;">${getCategoryLabel(r.req_type)}</span></td>
+      <td style="font-size:20px;">${r.req_source}</td>
+      <td>
+        <div style="font-weight:600;font-size:22px;">${r.title}</div>
+      </td>
+      <td style="font-size:20px;">${r.req_by}</td>
+      <td style="font-size:20px;">${fmtDate(r.req_date)}</td>
+      <td><span class="status-badge ${r.status_class}">${r.status_label}</span></td>
+      <td style="white-space:nowrap;">${actionBtns}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openReview(reqNo) {
+  document.getElementById('review-req-title').textContent = `พิจารณาคำขอ ${reqNo}`;
+  openModal('modal-review-req');
+}
+
+function clearReq() {
+  document.getElementById('req-search').value = '';
+  document.getElementById('req-type').value = '';
+  document.getElementById('req-status').value = '';
+  activeReqStatus = '';
+  document.querySelectorAll('#req-tabs .tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  renderRequests();
+}
+
+renderRequests();
+</script>
+</body>
+</html>

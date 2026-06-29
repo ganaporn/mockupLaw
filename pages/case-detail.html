@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รายละเอียดคดี - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+    <!-- Case Banner -->
+    <div class="case-banner" id="case-banner"></div>
+
+    <!-- Progress Steps -->
+    <div class="progress-steps" id="progress-steps"></div>
+
+    <!-- Action Bar -->
+    <div class="card mb-24" style="padding:14px 20px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:22px;font-weight:600;color:#71767a;margin-right:4px;">ดำเนินการ:</span>
+        <button class="btn-custom btn-primary btn-sm" id="btn-main-action">✅ ยื่นสำนวนพิจารณา</button>
+        <button class="btn-custom btn-secondary btn-sm" onclick="openModal('modal-activity')">➕ บันทึกกิจกรรม</button>
+        <button class="btn-custom btn-secondary btn-sm" onclick="openModal('modal-doc')">📎 แนบเอกสาร</button>
+        <button class="btn-custom btn-secondary btn-sm" onclick="openModal('modal-handover')">📤 ส่งต่องาน</button>
+        <button class="btn-custom btn-warning btn-sm" onclick="openModal('modal-review')">🔍 ส่งสอบทาน</button>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn-custom btn-secondary btn-sm" onclick="window.print()">🖨️ พิมพ์</button>
+          <a href="case-list.html" class="btn-custom btn-secondary btn-sm">← กลับรายการ</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert if overdue -->
+    <div class="alert-custom alert-warning mb-16" id="alert-box" style="display:none;">
+      ⚠️ <strong>คดีนี้มีกิจกรรมที่ครบกำหนดแล้ว</strong> — กรุณาดำเนินการโดยเร็ว
+    </div>
+
+    <!-- Tabs -->
+    <div class="card" id="tab-card">
+      <div class="card-body-custom" style="padding:0 20px;">
+        <div class="tabs-nav" id="main-tabs">
+          <button class="tab-btn active" data-tab="tab-info">📋 ข้อมูลคดี</button>
+          <button class="tab-btn" data-tab="tab-docs">📎 เอกสาร <span id="doc-count"></span></button>
+          <button class="tab-btn" data-tab="tab-activities">⚡ กิจกรรม</button>
+          <button class="tab-btn" data-tab="tab-timeline">📅 Timeline</button>
+          <button class="tab-btn" data-tab="tab-handover">🔄 รับ-ส่งงาน</button>
+          <button class="tab-btn" data-tab="tab-asset" id="tab-asset-btn" style="display:none;">🏠 ทรัพย์สิน</button>
+          <button class="tab-btn" data-tab="tab-court" id="tab-court-btn">⚖️ ข้อมูลศาล</button>
+          <button class="tab-btn" data-tab="tab-status-log">📝 บันทึกสถานะ</button>
+        </div>
+      </div>
+
+      <!-- ── Tab: ข้อมูลคดี ─────────────────────────────────── -->
+      <div id="tab-info" class="tab-content active" style="padding:20px;">
+        <div class="grid-2" style="margin-bottom:20px;">
+          <div class="card" style="padding:20px;">
+            <div class="form-section-title">ข้อมูลทั่วไป</div>
+            <div class="info-grid" id="info-general"></div>
+          </div>
+          <div class="card" style="padding:20px;">
+            <div class="form-section-title">ข้อมูลคู่ความ</div>
+            <div class="info-grid" id="info-parties"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card" style="padding:20px;">
+            <div class="form-section-title">ข้อมูลการเงิน</div>
+            <div id="info-finance"></div>
+          </div>
+          <div class="card" style="padding:20px;" id="contract-card" style="display:none;">
+            <div class="form-section-title">ข้อมูลสัญญา / รถร่วม</div>
+            <div class="info-grid" id="info-contract"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tab: เอกสาร ────────────────────────────────────── -->
+      <div id="tab-docs" class="tab-content" style="padding:20px;">
+        <div class="d-flex justify-between align-center mb-16">
+          <span style="font-size:22px;color:#71767a;">รายการเอกสารแนบ</span>
+          <button class="btn-custom btn-primary btn-sm" onclick="openModal('modal-doc')">+ แนบเอกสารใหม่</button>
+        </div>
+        <div class="card" id="doc-list"></div>
+      </div>
+
+      <!-- ── Tab: กิจกรรม ──────────────────────────────────── -->
+      <div id="tab-activities" class="tab-content" style="padding:20px;">
+        <div class="d-flex justify-between align-center mb-16">
+          <span style="font-size:22px;color:#71767a;">ประวัติกิจกรรมการดำเนินงาน</span>
+          <button class="btn-custom btn-primary btn-sm" onclick="openModal('modal-activity')">+ บันทึกกิจกรรม</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table-custom" id="activity-table">
+            <thead><tr>
+              <th>ประเภทกิจกรรม</th><th>วันที่</th><th>ครบกำหนด</th>
+              <th>ผลลัพธ์</th><th>รายละเอียด</th><th>ผู้ดำเนินการ</th><th>สถานะ</th>
+            </tr></thead>
+            <tbody id="activity-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Tab: Timeline ──────────────────────────────────── -->
+      <div id="tab-timeline" class="tab-content" style="padding:20px;">
+        <p style="font-size:22px;color:#71767a;margin-bottom:16px;">ประวัติการเปลี่ยนแปลงสถานะและการดำเนินการทั้งหมด</p>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <!-- ── Tab: รับ-ส่งงาน ────────────────────────────────── -->
+      <div id="tab-handover" class="tab-content" style="padding:20px;">
+        <div class="d-flex justify-between align-center mb-16">
+          <span style="font-size:22px;color:#71767a;">ประวัติการรับ-ส่งงานระหว่างหน่วยงาน</span>
+          <button class="btn-custom btn-secondary btn-sm" onclick="openModal('modal-handover')">📤 ส่งต่องาน</button>
+        </div>
+        <div class="card">
+          <table class="table-custom">
+            <thead><tr>
+              <th>วันที่ส่ง</th><th>จาก</th><th>ไปยัง</th><th>ประเภท</th><th>สถานะ</th><th>หมายเหตุ</th>
+            </tr></thead>
+            <tbody id="handover-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Tab: ทรัพย์สิน (บังคับคดี) ────────────────────── -->
+      <div id="tab-asset" class="tab-content" style="padding:20px;">
+        <div class="d-flex justify-between align-center mb-16">
+          <span style="font-size:22px;color:#71767a;">รายการทรัพย์สินที่สืบค้นได้ (T_CASE_ASSET)</span>
+          <button class="btn-custom btn-primary btn-sm" onclick="openModal('modal-asset')">+ บันทึกทรัพย์ใหม่</button>
+        </div>
+        <div class="card">
+          <table class="table-custom" id="asset-table">
+            <thead><tr>
+              <th>ประเภททรัพย์</th><th>รายละเอียด</th><th>เจ้าของ</th><th>วันที่พบ</th>
+              <th>มูลค่าประเมิน</th><th>สถานะ</th><th>สถานะยึด</th>
+            </tr></thead>
+            <tbody>
+              <tr><td colspan="7" class="text-muted" style="text-align:center;padding:24px;">
+                ยังไม่มีข้อมูลทรัพย์สิน
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Tab: ข้อมูลศาล ─────────────────────────────────── -->
+      <div id="tab-court" class="tab-content" style="padding:20px;">
+        <div class="d-flex justify-between align-center mb-16">
+          <span style="font-size:22px;color:#71767a;">รายละเอียดการดำเนินคดีในชั้นศาล (T_LITIGATION_DETAIL)</span>
+          <button class="btn-custom btn-secondary btn-sm" onclick="openModal('modal-court')">✏️ แก้ไขข้อมูลศาล</button>
+        </div>
+        <div class="card" style="padding:20px;">
+          <div class="info-grid" id="info-court"></div>
+        </div>
+      </div>
+
+      <!-- ── Tab: บันทึกประจำสถานะ ──────────────────────────── -->
+      <div id="tab-status-log" class="tab-content" style="padding:20px;">
+        <div id="status-log-panel"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ─── Modal: บันทึกกิจกรรม ───────────────────────────────── -->
+<div class="modal-overlay" id="modal-activity">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">บันทึกกิจกรรม</span>
+      <button class="modal-close" onclick="closeModal('modal-activity')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ประเภทกิจกรรม <span class="req">*</span></label>
+        <select class="form-control-custom">
+          <option>ตรวจสอบสำนวน</option><option>ทวงถาม</option><option>ยื่นฟ้อง</option>
+          <option>ยื่นคำให้การ</option><option>สืบทรัพย์</option><option>ยึดทรัพย์</option>
+          <option>ประนอมหนี้</option><option>ติดตามนัดพิจารณา</option><option>อื่นๆ</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">วันที่ <span class="req">*</span></label>
+          <input type="date" class="form-control-custom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">วันที่ครบกำหนด</label>
+          <input type="date" class="form-control-custom">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ผลลัพธ์</label>
+        <select class="form-control-custom">
+          <option value="">-- เลือก --</option><option>ผ่าน</option><option>ไม่ผ่าน</option>
+          <option>รอผล</option><option>ยื่นแล้ว</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">รายละเอียด / บันทึก</label>
+        <textarea class="form-control-custom" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-activity')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="alert('บันทึกสำเร็จ (mockup)');closeModal('modal-activity')">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: แนบเอกสาร ──────────────────────────────────── -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">แนบเอกสาร</span>
+      <button class="modal-close" onclick="closeModal('modal-doc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ชื่อเอกสาร <span class="req">*</span></label>
+        <input type="text" class="form-control-custom" placeholder="ระบุชื่อเอกสาร">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">เลขที่เอกสาร</label>
+          <input type="text" class="form-control-custom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">วันที่เอกสาร</label>
+          <input type="date" class="form-control-custom">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ไฟล์เอกสาร <span class="req">*</span></label>
+        <input type="file" class="form-control-custom" accept=".pdf,.doc,.docx,.jpg,.png">
+        <div class="form-hint">รองรับ PDF, Word, รูปภาพ (ไม่เกิน 20MB)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-control-custom" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-doc')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="alert('บันทึกสำเร็จ (mockup)');closeModal('modal-doc')">แนบไฟล์</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: ส่งต่องาน ──────────────────────────────────── -->
+<div class="modal-overlay" id="modal-handover">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">ส่งต่องาน / รับ-ส่งสำนวน</span>
+      <button class="modal-close" onclick="closeModal('modal-handover')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert-custom alert-info">ℹ️ การส่งงานจะปรับสถานะคดีและสร้างประวัติ handover โดยอัตโนมัติ</div>
+      <div class="form-group">
+        <label class="form-label">ประเภทการส่ง <span class="req">*</span></label>
+        <select class="form-control-custom" id="handover-type"></select>
+        <div class="form-hint" id="handover-hint" style="color:#0f6ab4;margin-top:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ส่งไปยังหน่วยงาน <span class="req">*</span></label>
+        <select class="form-control-custom" id="handover-dept"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">มอบหมายให้</label>
+        <select class="form-control-custom">
+          <option>-- เลือกผู้รับผิดชอบ --</option>
+          <option>นายวิรัตน์ สมใจ</option><option>นางสาวสุนิตรา ภูวา</option>
+          <option>นายพงษ์ศักดิ์ บุญคุ้ม</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุการส่ง</label>
+        <textarea class="form-control-custom" rows="3" placeholder="ระบุเหตุผล / หมายเหตุ"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-handover')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="alert('ส่งงานสำเร็จ (mockup)');closeModal('modal-handover')">✅ ยืนยันส่งงาน</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: สอบทาน ─────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-review">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">ส่งสอบทาน (หัวหน้างาน)</span>
+      <button class="modal-close" onclick="closeModal('modal-review')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ผลสอบทาน <span class="req">*</span></label>
+        <select class="form-control-custom" id="review-outcome"></select>
+        <div class="form-hint" id="review-hint" style="color:#0f6ab4;margin-top:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ความเห็นหัวหน้างาน <span class="req">*</span></label>
+        <textarea class="form-control-custom" rows="4"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-review')">ยกเลิก</button>
+      <button class="btn-custom btn-success" onclick="alert('บันทึกผลสอบทาน (mockup)');closeModal('modal-review')">✅ บันทึกผลสอบทาน</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: ข้อมูลศาล ──────────────────────────────────── -->
+<div class="modal-overlay" id="modal-court">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">แก้ไขข้อมูลศาล (T_LITIGATION_DETAIL)</span>
+      <button class="modal-close" onclick="closeModal('modal-court')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ชื่อศาล</label>
+        <input type="text" class="form-control-custom" value="ศาลปกครองกลาง">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">เลขคดีดำ</label>
+          <input type="text" class="form-control-custom" value="196/2568">
+        </div>
+        <div class="form-group">
+          <label class="form-label">เลขคดีแดง</label>
+          <input type="text" class="form-control-custom">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">วันที่ยื่นฟ้อง</label>
+          <input type="date" class="form-control-custom" value="2026-06-10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">วันที่ศาลรับฟ้อง</label>
+          <input type="date" class="form-control-custom">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">วันที่ขออนุมัติ</label>
+          <input type="date" class="form-control-custom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">วันที่อนุมัติ</label>
+          <input type="date" class="form-control-custom">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ผลการพิพากษา</label>
+        <select class="form-control-custom">
+          <option value="">-- รอผล --</option>
+          <option value="PAID">ชำระแล้ว</option>
+          <option value="COMPROMISE">ประนีประนอม</option>
+          <option value="DISMISSED">ยกฟ้อง</option>
+          <option value="WITHDRAWN">ถอนฟ้อง</option>
+          <option value="LOSE_PAY">แพ้คดี / ต้องชำระ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุทางศาล</label>
+        <textarea class="form-control-custom" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-court')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="alert('บันทึกสำเร็จ (mockup)');closeModal('modal-court')">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: บันทึกประจำสถานะ ─────────────────────────────── -->
+<div class="modal-overlay" id="modal-status-log">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <span class="modal-title">📝 บันทึกความคืบหน้า</span>
+      <button class="modal-close" onclick="closeModal('modal-status-log')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">สถานะที่บันทึก</label>
+        <input type="text" class="form-control-custom" id="modal-log-status-display" readonly
+          style="background:#f0f2f5;color:#71767a;font-weight:600;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">วันที่บันทึก</label>
+        <input type="date" class="form-control-custom" id="modal-log-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">รายละเอียด / บันทึก <span class="req">*</span></label>
+        <textarea class="form-control-custom" id="modal-log-note" rows="4"
+          placeholder="ระบุรายละเอียดการดำเนินการ เช่น ผลลัพธ์ที่ได้ ปัญหาที่พบ หรือขั้นตอนถัดไป"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">แนบไฟล์ (ถ้ามี)</label>
+        <input type="file" class="form-control-custom" id="modal-log-file" multiple
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+        <div class="form-hint">รองรับ PDF, Word, Excel, รูปภาพ (ไม่เกิน 20MB ต่อไฟล์)</div>
+        <div id="modal-log-filelist" style="margin-top:6px;display:flex;flex-direction:column;gap:3px;"></div>
+      </div>
+      <div style="padding:10px 12px;background:#f8fafc;border-radius:6px;border:1px solid #e5e7eb;">
+        <div style="font-size:30px;color:#71767a;margin-bottom:3px;">ผู้บันทึก (อัตโนมัติ)</div>
+        <div style="font-size:22px;font-weight:600;" id="modal-log-user-display"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-custom btn-secondary" onclick="closeModal('modal-status-log')">ยกเลิก</button>
+      <button class="btn-custom btn-primary" onclick="saveStatusLog()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('cases');
+document.getElementById('topbar').innerHTML = buildTopbar('คดี', 'รายละเอียดคดี');
+
+// Get case from URL param
+const params = new URLSearchParams(location.search);
+const caseId = parseInt(params.get('id')) || 1;
+const caseData = MOCK_CASES.find(c => c.case_id === caseId) || MOCK_CASES[0];
+
+// ─── Case Banner ─────────────────────────────────────────────
+document.getElementById('case-banner').innerHTML = `
+  <div class="case-banner-no">${caseData.case_no} &bull; ${getCategoryLabel(caseData.case_category)}</div>
+  <div class="case-banner-title">${caseData.case_title}</div>
+  <div class="case-banner-meta">
+    <span>📅 เปิดคดี: ${fmtDate(caseData.open_date)}</span>
+    <span>👤 ผู้รับผิดชอบ: ${caseData.assignee}</span>
+    <span>🏢 หน่วยงาน: ${caseData.dept}</span>
+    ${caseData.legal_case_no ? `<span>⚖️ เลขคดีศาล: ${caseData.legal_case_no}</span>` : ''}
+    ${caseData.court ? `<span>🏛️ ศาล: ${caseData.court}</span>` : ''}
+  </div>
+  <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    ${getStageBadge(caseData.case_type)}
+    ${(() => {
+      const st = STATUS_MAP[caseData.current_status];
+      const mainCode = st?.parent || caseData.current_status;
+      const mainSt = STATUS_MAP[mainCode];
+      const subSt = st?.parent ? st : null;
+      let html = `<span class="status-badge ${mainSt?.class || 'status-pending'}">${mainSt?.label || mainCode}</span>`;
+      if (subSt) html += `<span style="color:#71767a;font-size:22px;">›</span><span class="status-badge ${subSt.class}" style="font-size:30px;">${subSt.label}</span>`;
+      return html;
+    })()}
+  </div>`;
+
+// ─── Progress Steps (within-stage workflow) ───────────────────
+const stageWorkflow = STAGE_WORKFLOWS[caseData.case_type] || [];
+const currentSubInfo = STATUS_MAP[caseData.current_status];
+const currentMainCode = currentSubInfo?.parent || caseData.current_status;
+document.getElementById('progress-steps').innerHTML = stageWorkflow
+  .filter(s => !s.alt)
+  .map((step, i) => {
+    const isCurrent = step.code === currentMainCode;
+    const cls = isCurrent ? 'active-step' : '';
+    // Find sub-status label if current step is active and we have a sub-status
+    const subLabel = (isCurrent && currentSubInfo?.parent)
+      ? `<div style="font-size:28px;color:#1a4480;font-weight:700;margin-top:2px;">${currentSubInfo.label}</div>` : '';
+    return `<div class="step-item ${cls}">
+      <div class="step-circle">${i+1}</div>
+      <div class="step-label">${step.label}${subLabel}<span style="font-size:28px;color:#71767a;display:block;">${step.role}</span></div>
+    </div>`;
+  }).join('');
+
+// Show asset tab for enforcement
+if (caseData.case_type === 'ENFORCEMENT') {
+  document.getElementById('tab-asset-btn').style.display = '';
+}
+
+// ─── Info: General ────────────────────────────────────────────
+document.getElementById('info-general').innerHTML = [
+  { label:'เลขคดี', value: caseData.case_no },
+  { label:'ประเภทงาน', value: getCategoryLabel(caseData.case_category) },
+  { label:'Stage ปัจจุบัน', value: STAGES[caseData.case_type]?.label },
+  { label:'สถานะหลัก', value: (() => {
+    const st = STATUS_MAP[caseData.current_status];
+    const mainCode = st?.parent || caseData.current_status;
+    return STATUS_MAP[mainCode]?.label || mainCode;
+  })() },
+  { label:'สถานะย่อย', value: (() => {
+    const st = STATUS_MAP[caseData.current_status];
+    return st?.parent ? st.label : '-';
+  })() },
+  { label:'วันที่เปิดคดี', value: fmtDate(caseData.open_date) },
+  { label:'เลขคดีศาล', value: caseData.legal_case_no || '-' },
+  { label:'ผู้รับผิดชอบ', value: caseData.assignee },
+  { label:'หน่วยงาน', value: caseData.dept }
+].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+
+document.getElementById('info-parties').innerHTML = [
+  { label:'โจทก์/ผู้ร้อง', value: caseData.plaintiff || '-' },
+  { label:'จำเลย/ลูกหนี้', value: caseData.defendant || '-' },
+  { label:'ทะเบียนรถ', value: caseData.vehicle_reg_no || '-' },
+  { label:'เลขที่สัญญา', value: caseData.contract_no || '-' }
+].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+
+// ─── Info: Finance ─────────────────────────────────────────────
+document.getElementById('info-finance').innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+    ${[
+      { label:'มูลหนี้รวม', value: fmtMoney(caseData.claim_amount), color:'#1b1b1b' },
+      { label:'ชำระแล้ว', value: fmtMoney(caseData.paid_amount), color:'#00a91c' },
+      { label:'คงเหลือ', value: fmtMoney(caseData.outstanding_amount), color:'#e52207' }
+    ].map(f => `<div style="text-align:center;padding:16px;background:#f8fafc;border-radius:8px;">
+      <div style="font-size:30px;text-transform:uppercase;letter-spacing:.06em;color:#71767a;font-weight:700;margin-bottom:8px;">${f.label}</div>
+      <div style="font-size:30px;font-weight:800;color:${f.color};">${f.value}</div>
+    </div>`).join('')}
+  </div>
+  <div style="margin-top:14px;background:#f0f2f5;border-radius:8px;height:10px;overflow:hidden;">
+    <div style="width:${caseData.claim_amount > 0 ? Math.round(caseData.paid_amount/caseData.claim_amount*100) : 0}%;background:#00a91c;height:100%;border-radius:8px;transition:width .5s;"></div>
+  </div>
+  <div style="font-size:30px;color:#71767a;margin-top:4px;text-align:right;">
+    ชำระแล้ว ${caseData.claim_amount > 0 ? Math.round(caseData.paid_amount/caseData.claim_amount*100) : 0}%
+  </div>`;
+
+// ─── Docs Tab ─────────────────────────────────────────────────
+document.getElementById('doc-count').textContent = `(${MOCK_DOCS.length})`;
+document.getElementById('doc-list').innerHTML = MOCK_DOCS.map(d => `
+  <div class="checklist-item">
+    <span class="checklist-no">${d.no}</span>
+    <div class="checklist-name">
+      ${d.name}
+      ${d.required ? '<span class="checklist-req">*บังคับ</span>' : ''}
+    </div>
+    <div class="checklist-status">
+      ${d.uploaded
+        ? `<span class="status-badge status-active">✅ แนบแล้ว</span>
+           &nbsp;<a href="#" style="font-size:20px;">${d.file}</a>
+           <span style="font-size:30px;color:#71767a;margin-left:4px;">${fmtDate(d.date)}</span>`
+        : `<span class="status-badge status-draft">— ยังไม่แนบ</span>
+           &nbsp;<button class="btn-custom btn-outline btn-xs" onclick="openModal('modal-doc')">+ แนบ</button>`
+      }
+    </div>
+  </div>`).join('');
+
+// ─── Activities Tab ────────────────────────────────────────────
+document.getElementById('activity-tbody').innerHTML = MOCK_ACTIVITIES.map(a => `<tr>
+  <td style="font-weight:600;">${a.type}</td>
+  <td>${fmtDate(a.date)}</td>
+  <td>${a.due ? `<span style="color:${new Date(a.due) < new Date() && !a.done ? '#e52207':'#71767a'};font-size:20px;">${fmtDate(a.due)}</span>` : '-'}</td>
+  <td>${a.result ? `<span class="status-badge status-active">${a.result}</span>` : '-'}</td>
+  <td style="font-size:20px;">${a.note}</td>
+  <td style="font-size:20px;">${a.by}</td>
+  <td>${a.done ? '<span class="status-badge status-closed">เสร็จสิ้น</span>' : '<span class="status-badge status-pending">รอดำเนินการ</span>'}</td>
+</tr>`).join('');
+
+// ─── Timeline ─────────────────────────────────────────────────
+document.getElementById('timeline').innerHTML = MOCK_TIMELINE.map(t => `
+  <div class="timeline-item">
+    <div class="timeline-dot ${t.dot}"></div>
+    <div class="timeline-content">
+      <div class="timeline-time">${t.datetime}</div>
+      <div class="timeline-action">${t.action}</div>
+      ${t.note ? `<div class="timeline-note">${t.note}</div>` : ''}
+      <div class="timeline-user">👤 ${t.user} &bull; ${t.dept}</div>
+    </div>
+  </div>`).join('');
+
+// ─── Handover Tab ─────────────────────────────────────────────
+const handoverData = [
+  { sent:'2026-04-18', from:'เตรียมคดี', to:'กลุ่มงานคดี', type:'ส่งงานคดี', status:'รับแล้ว', note:'เอกสารครบถ้วน ส่งฟ้อง' },
+  { sent:'2025-03-01', from:'กลุ่มงานคดีกลาง', to:'เตรียมคดี', type:'สร้างคดีจากคำขอ', status:'รับแล้ว', note:'REQ-68-0001' }
+];
+document.getElementById('handover-tbody').innerHTML = handoverData.map(h => `<tr>
+  <td>${fmtDate(h.sent)}</td>
+  <td>${h.from}</td><td>${h.to}</td>
+  <td><span class="status-badge badge-prepare">${h.type}</span></td>
+  <td><span class="status-badge status-active">${h.status}</span></td>
+  <td style="font-size:20px;">${h.note}</td>
+</tr>`).join('');
+
+// ─── Court Info ───────────────────────────────────────────────
+document.getElementById('info-court').innerHTML = [
+  { label:'ศาล', value: caseData.court || '-' },
+  { label:'เลขคดีดำ', value: caseData.legal_case_no || '-' },
+  { label:'เลขคดีแดง', value: '-' },
+  { label:'บทบาทองค์การ', value: caseData.case_category === 'ORG_DEFENDANT' ? 'จำเลย' : 'โจทก์' },
+  { label:'วันที่ยื่นฟ้อง', value: fmtDate('2026-06-10') },
+  { label:'วันที่ศาลรับฟ้อง', value: '-' },
+  { label:'วันที่ขออนุมัติ', value: '-' },
+  { label:'ผลการพิพากษา', value: '-' }
+].map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+
+// ─── Tabs ─────────────────────────────────────────────────────
+document.querySelectorAll('#main-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#main-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    const target = document.getElementById(btn.dataset.tab);
+    if (target) target.classList.add('active');
+  });
+});
+
+// Alert if has overdue activity
+if (MOCK_ACTIVITIES.some(a => !a.done && a.due && new Date(a.due) < new Date())) {
+  document.getElementById('alert-box').style.display = 'flex';
+}
+
+// ─── Populate modals based on current stage (B2/B3 fix) ──────
+(function initStageModals() {
+  const stage = caseData.case_type; // 'PREPARE' | 'LITIGATION' | 'ENFORCEMENT'
+
+  // Handover options — only valid transitions for each stage
+  const HANDOVER_OPTIONS = {
+    PREPARE: [
+      { value: 'FWD_LITIGATION', label: 'ส่งงานคดี (เตรียมคดี → งานคดี)', hint: 'รับสำนวนที่ กลุ่มงานคดี' }
+    ],
+    LITIGATION: [
+      { value: 'FWD_ENFORCEMENT', label: 'ส่งงานบังคับคดี (งานคดี → บังคับคดี)', hint: 'รับสำนวนที่ งานบังคับคดี' },
+      { value: 'RTN_PREPARE',     label: 'ส่งเรื่องคืนงานเตรียมคดี',              hint: 'ตีกลับเพื่อแก้ไข/เพิ่มเติมข้อมูล' }
+    ],
+    ENFORCEMENT: [
+      { value: 'RTN_LITIGATION',  label: 'ส่งเรื่องกลับงานคดี (บังคับคดี → งานคดี)', hint: 'ไม่สามารถข้ามกลับ เตรียมคดี ได้โดยตรง' }
+    ]
+  };
+  const HANDOVER_DEPT = {
+    PREPARE:     [{ v:'กลุ่มงานคดี', l:'กลุ่มงานคดี (รับสำนวนและ Assign)' }],
+    LITIGATION:  [{ v:'บังคับคดี', l:'งานบังคับคดี' }, { v:'เตรียมคดี', l:'เตรียมคดี (กรณีตีกลับ)' }],
+    ENFORCEMENT: [{ v:'กลุ่มงานคดี', l:'กลุ่มงานคดี (ส่งกลับ)' }]
+  };
+
+  // Review outcomes per stage (from STAGE_WORKFLOWS)
+  const REVIEW_OPTIONS = {
+    PREPARE: [
+      { value: 'CLOSED',              label: 'ปิดเรื่อง (รับเงิน / จำหน่ายหนี้)' },
+      { value: 'SEND_TO_LITIGATION',  label: 'ส่งฟ้องคดี → งานคดี' },
+      { value: 'IN_PROGRESS',         label: 'ตีกลับเพื่อแก้ไข → นิติกรดำเนินการ' }
+    ],
+    LITIGATION: [
+      { value: 'CASE_CLOSED',         label: 'ปิดเรื่อง' },
+      { value: 'SEND_TO_ENFORCE',     label: 'ส่งยึดทรัพย์ / บังคับคดี' }
+    ],
+    ENFORCEMENT: [
+      { value: 'ENFORCE_CLOSED',      label: 'ชำระหนี้ครบ → ปิดเรื่อง' },
+      { value: 'ENFORCE_CLOSED',      label: 'จำหน่ายหนี้ → ปิดเรื่อง' }
+    ]
+  };
+
+  function populate(selId, hintId, items, labelFn, hintFn) {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    sel.innerHTML = items.map(o => `<option value="${o.value}">${labelFn(o)}</option>`).join('');
+    if (hintId && hintFn) {
+      sel.addEventListener('change', () => {
+        document.getElementById(hintId).textContent = hintFn(items.find(o => o.value === sel.value));
+      });
+      sel.dispatchEvent(new Event('change'));
+    }
+  }
+
+  populate('handover-type', 'handover-hint',
+    HANDOVER_OPTIONS[stage] || [],
+    o => o.label, o => o?.hint || '');
+
+  populate('handover-dept', null,
+    HANDOVER_DEPT[stage] || [],
+    o => o.l, null);
+
+  populate('review-outcome', 'review-hint',
+    REVIEW_OPTIONS[stage] || [],
+    o => o.label,
+    o => `→ สถานะถัดไป: ${STATUS_MAP[o?.value]?.label || '-'}`);
+})();
+
+// ─── Tab: บันทึกประจำสถานะ ────────────────────────────────────
+function renderStatusLog() {
+  const stage = caseData.case_type;
+  const workflow = STAGE_WORKFLOWS[stage] || [];
+  const subInfo = STATUS_MAP[caseData.current_status];
+  const currentMainCode = subInfo?.parent || caseData.current_status;
+  const mainSteps = workflow.filter(s => !s.alt);
+  const currentStepIdx = mainSteps.findIndex(s => s.code === currentMainCode);
+
+  let html = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;
+      background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:20px;">
+      <span style="font-size:22px;font-weight:600;color:#4b5563;">Stage ปัจจุบัน:</span>
+      ${getStageBadge(stage)}
+      <span style="font-size:20px;color:#71767a;">— บันทึกรายละเอียดและแนบเอกสารสำหรับแต่ละสถานะ เพื่อเก็บเป็น log การดำเนินงาน</span>
+    </div>`;
+
+  mainSteps.forEach((step, i) => {
+    const isPast    = i < currentStepIdx;
+    const isCurrent = i === currentStepIdx;
+    const isFuture  = i > currentStepIdx;
+
+    const stepLogs = MOCK_STATUS_LOGS.filter(
+      l => l.case_id === caseData.case_id && l.stage === stage && l.status_code === step.code
+    );
+
+    const circleColor = isPast ? '#00a91c' : isCurrent ? '#1a4480' : '#d1d5db';
+    const circleText  = isFuture ? '#6b7280' : '#fff';
+    const headerBg    = isPast ? '#f0fdf4' : isCurrent ? '#eff6ff' : '#f9fafb';
+    const borderColor = isCurrent ? '#93c5fd' : isPast ? '#86efac' : '#e5e7eb';
+    const titleColor  = isPast ? '#166534' : isCurrent ? '#1e40af' : '#6b7280';
+    const indicator   = isPast ? '✅' : isCurrent ? '🔄' : '⬜';
+
+    // sub-status badge for current active step
+    let subBadge = '';
+    if (isCurrent && subInfo?.parent === step.code) {
+      subBadge = `<span style="margin-left:8px;font-size:30px;background:#dbeafe;color:#1e40af;
+        padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle;">
+        สถานะย่อย: ${subInfo.label}</span>`;
+    }
+
+    // Sub-status list (shown on current step if step has sub)
+    let subListHtml = '';
+    if (isCurrent && step.sub && step.sub.length > 0) {
+      subListHtml = `
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px;">
+          ${step.sub.map(s => {
+            const isActiveSub = subInfo?.parent === step.code && caseData.current_status === s.code;
+            return `<span style="font-size:30px;padding:3px 9px;border-radius:10px;
+              background:${isActiveSub ? '#dbeafe' : '#f0f2f5'};
+              color:${isActiveSub ? '#1e40af' : '#71767a'};
+              border:1px solid ${isActiveSub ? '#93c5fd' : 'transparent'};
+              font-weight:${isActiveSub ? '700' : '400'};">${s.label}</span>`;
+          }).join('')}
+        </div>`;
+    }
+
+    // Log entries HTML
+    const logsHtml = stepLogs.length === 0
+      ? `<div style="text-align:center;padding:18px 12px;color:#9ca3af;font-size:20px;">
+           ${isFuture
+             ? '— ขั้นตอนนี้ยังไม่ได้ดำเนินการ —'
+             : isCurrent
+               ? '— ยังไม่มีบันทึก กด "+ บันทึก" เพื่อเพิ่ม —'
+               : '— ไม่พบบันทึกสำหรับขั้นตอนนี้ —'}
+         </div>`
+      : `<div style="display:flex;flex-direction:column;gap:10px;">
+           ${stepLogs.map(log => `
+             <div style="background:#fafcff;border:1px solid #e0e7ff;border-radius:8px;padding:12px 14px;">
+               <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                 <span style="font-size:20px;font-weight:700;color:#1b1b1b;">${log.logged_by}</span>
+                 <span style="font-size:30px;background:#eff6ff;color:#1e40af;padding:2px 7px;border-radius:10px;font-weight:600;">${log.role}</span>
+                 <span style="font-size:30px;background:#f0f2f5;color:#71767a;padding:2px 7px;border-radius:10px;">${log.dept}</span>
+                 <span style="font-size:30px;color:#9ca3af;margin-left:auto;">🕐 ${log.logged_at}</span>
+               </div>
+               <div style="font-size:22px;line-height:1.65;color:#374151;">${log.note}</div>
+               ${log.files && log.files.length > 0 ? `
+                 <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+                   ${log.files.map(f => `
+                     <a href="#" onclick="event.preventDefault()"
+                       style="font-size:30px;display:inline-flex;align-items:center;gap:4px;
+                       padding:3px 9px;background:#eff6ff;border:1px solid #bfdbfe;
+                       border-radius:4px;color:#1e40af;text-decoration:none;">
+                       📎 ${f.name} <span style="color:#9ca3af;">(${f.size})</span>
+                     </a>`).join('')}
+                 </div>` : ''}
+             </div>`).join('')}
+         </div>`;
+
+    html += `
+      <div style="margin-bottom:14px;border:1.5px solid ${borderColor};border-radius:10px;
+        overflow:hidden;${isFuture ? 'opacity:.5;' : ''}">
+        <!-- Header -->
+        <div style="padding:12px 16px;background:${headerBg};display:flex;align-items:center;
+          gap:10px;border-bottom:1px solid ${borderColor};">
+          <div style="width:28px;height:28px;border-radius:50%;background:${circleColor};
+            color:${circleText};display:flex;align-items:center;justify-content:center;
+            font-size:20px;font-weight:800;flex-shrink:0;">${i + 1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:24px;color:${titleColor};">
+              ${indicator} ${step.label}${subBadge}
+            </div>
+            <div style="font-size:30px;color:#71767a;margin-top:2px;">
+              บทบาท: <strong>${step.role}</strong>
+              <span style="color:#d1d5db;margin:0 4px;">|</span>
+              บันทึกทั้งหมด: <strong>${stepLogs.length} รายการ</strong>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            ${isFuture  ? `<span style="font-size:30px;color:#9ca3af;background:#f3f4f6;
+                padding:3px 10px;border-radius:12px;">ยังไม่ถึงขั้นตอนนี้</span>` : ''}
+            ${isPast    ? `<span style="font-size:30px;color:#166534;background:#dcfce7;
+                padding:3px 10px;border-radius:12px;border:1px solid #86efac;">ดำเนินการแล้ว</span>` : ''}
+            ${isCurrent ? `<button class="btn-custom btn-primary btn-sm"
+                onclick="openStatusLogModal('${step.code}','${step.label}')">+ บันทึก</button>` : ''}
+          </div>
+        </div>
+        <!-- Sub-status pills (current step only) -->
+        ${subListHtml ? `<div style="padding:4px 16px 0;background:${headerBg};border-bottom:1px solid ${borderColor};">${subListHtml}</div>` : ''}
+        <!-- Log entries -->
+        <div style="padding:12px 16px;">${logsHtml}</div>
+      </div>`;
+  });
+
+  document.getElementById('status-log-panel').innerHTML = html;
+}
+renderStatusLog();
+
+// ─── Status Log Modal handlers ────────────────────────────────
+let _logTargetStatus = null;
+
+function openStatusLogModal(statusCode, statusLabel) {
+  _logTargetStatus = { code: statusCode, label: statusLabel };
+  document.getElementById('modal-log-status-display').value = statusLabel;
+  document.getElementById('modal-log-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-log-note').value = '';
+  document.getElementById('modal-log-file').value = '';
+  document.getElementById('modal-log-filelist').innerHTML = '';
+  document.getElementById('modal-log-user-display').textContent =
+    `${MOCK_USER.name} · ${MOCK_USER.role} · ${MOCK_USER.dept}`;
+  openModal('modal-status-log');
+}
+window.openStatusLogModal = openStatusLogModal;
+
+document.getElementById('modal-log-file').addEventListener('change', function () {
+  document.getElementById('modal-log-filelist').innerHTML = Array.from(this.files).map(f =>
+    `<div style="font-size:20px;color:#374151;display:flex;align-items:center;gap:4px;padding:2px 0;">
+       📎 <span>${f.name}</span>
+       <span style="color:#9ca3af;">(${f.size < 1048576 ? (f.size/1024).toFixed(0)+' KB' : (f.size/1048576).toFixed(1)+' MB'})</span>
+     </div>`
+  ).join('');
+});
+
+function saveStatusLog() {
+  const note = document.getElementById('modal-log-note').value.trim();
+  if (!note) { alert('กรุณากรอกรายละเอียด'); return; }
+  const fileInput = document.getElementById('modal-log-file');
+  const files = Array.from(fileInput.files).map(f => ({
+    name: f.name,
+    size: f.size < 1048576 ? (f.size/1024).toFixed(0)+' KB' : (f.size/1048576).toFixed(1)+' MB'
+  }));
+  MOCK_STATUS_LOGS.push({
+    log_id:     MOCK_STATUS_LOGS.length + 1,
+    case_id:    caseData.case_id,
+    stage:      caseData.case_type,
+    status_code: _logTargetStatus.code,
+    logged_at:  new Date().toLocaleString('th-TH', { dateStyle:'medium', timeStyle:'short' }),
+    logged_by:  MOCK_USER.name,
+    role:       MOCK_USER.role,
+    dept:       MOCK_USER.dept,
+    note:       note,
+    files:      files
+  });
+  closeModal('modal-status-log');
+  renderStatusLog();
+}
+window.saveStatusLog = saveStatusLog;
+</script>
+</body>
+</html>

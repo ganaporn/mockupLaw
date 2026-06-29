@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER Diagram - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+/* ─── ER Page styles ──────────────────────────────────── */
+.er-toolbar {
+  background:#fff; border:1px solid #dfe1e2; border-radius:8px;
+  padding:12px 16px; margin-bottom:16px;
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+}
+.view-btn {
+  padding:6px 14px; border-radius:20px; font-size:20px; font-weight:700;
+  border:2px solid #dfe1e2; background:#fff; cursor:pointer;
+  transition:all .15s; font-family:inherit;
+}
+.view-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.zoom-btn {
+  width:32px; height:32px; border:1px solid #dfe1e2; border-radius:6px;
+  background:#fff; cursor:pointer; font-size:28px; display:flex;
+  align-items:center; justify-content:center;
+}
+.zoom-btn:hover { background:#f0f2f5; }
+
+/* ─── Mermaid container ────────────────────────────────── */
+.er-wrap {
+  background:#fafafa; border:1px solid #dfe1e2; border-radius:8px;
+  overflow:auto; min-height:600px; position:relative;
+}
+.er-inner {
+  padding:32px; transform-origin: top left;
+  transition:transform .2s;
+}
+.er-inner svg { max-width:none !important; }
+
+/* ─── Legend ─────────────────────────────────────────── */
+.legend { display:flex; flex-wrap:wrap; gap:12px; font-size:20px; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:14px; height:14px; border-radius:3px; }
+
+/* ─── Table cards (fallback if mermaid fails) ────────── */
+.er-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; padding:20px; }
+.er-table-card {
+  background:#fff; border-radius:8px; border:2px solid;
+  overflow:hidden; font-size:20px;
+}
+.er-table-card.transaction { border-color:#3b82f6; }
+.er-table-card.master      { border-color:#10b981; }
+.er-table-header {
+  padding:8px 12px; font-weight:800; font-size:22px;
+  display:flex; align-items:center; gap:6px;
+}
+.er-table-card.transaction .er-table-header { background:#dbeafe; color:#1e40af; }
+.er-table-card.master      .er-table-header { background:#d1fae5; color:#065f46; }
+.er-col { padding:5px 12px; border-bottom:1px solid #f0f2f5; display:flex; gap:8px; align-items:center; }
+.er-col:last-child { border-bottom:none; }
+.er-col-type { font-size:28px; color:#9ca3af; min-width:60px; }
+.er-col-name { flex:1; }
+.er-col-key {
+  font-size:24px; font-weight:800; padding:1px 5px; border-radius:3px;
+}
+.key-pk { background:#fef3c7; color:#92400e; }
+.key-fk { background:#dbeafe; color:#1e40af; }
+.key-uq { background:#ede9fe; color:#5b21b6; }
+
+/* ─── Relationship lines (SVG overlay) ──────────────── */
+.rel-tag {
+  display:inline-block; padding:2px 6px; border-radius:4px; font-size:28px;
+  font-weight:700; background:#f0f2f5; color:#374151; margin:2px;
+}
+.rel-section { background:#fff; border-radius:8px; border:1px solid #dfe1e2; padding:16px; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+    <div class="page-header d-flex align-center justify-between">
+      <div>
+        <h1 class="page-title">ER Diagram — DB Design งานคดี v3</h1>
+        <p class="page-subtitle">แผนผังความสัมพันธ์ระหว่างตาราง 33 ตาราง (15 Transaction + 18 Master) — อัปเดตแก้ไข Gap ทั้งหมดแล้ว</p>
+      </div>
+      <a href="db-analysis.html" class="btn-custom btn-secondary btn-sm">📊 DB Analysis →</a>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="er-toolbar">
+      <div style="display:flex;gap:6px;">
+        <button class="view-btn active" onclick="switchView('mermaid')">🗺️ Mermaid ER</button>
+        <button class="view-btn" onclick="switchView('cards')">🃏 Table Cards</button>
+        <button class="view-btn" onclick="switchView('relations')">🔗 Relations</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="zoom-btn" onclick="zoom(-0.1)" title="Zoom Out">−</button>
+        <span id="zoom-label" style="font-size:20px;min-width:40px;text-align:center;">100%</span>
+        <button class="zoom-btn" onclick="zoom(0.1)"  title="Zoom In">+</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="Reset">⊙</button>
+      </div>
+      <div style="margin-left:auto;" class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Transaction Table (T_)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div> Master Table (M_)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;border:1px solid #92400e;"></div> PK</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#93c5fd;border:1px solid #1e40af;"></div> FK</div>
+      </div>
+    </div>
+
+    <!-- ── View: Mermaid ER ─────────────────────────────────── -->
+    <div id="view-mermaid">
+      <div class="card mb-16" style="padding:12px 16px;font-size:20px;color:#71767a;">
+        💡 ใช้ scroll เพื่อดูทั้งหมด / ปุ่ม +/− เพื่อ zoom / ลาก diagram เพื่อ pan
+      </div>
+      <div class="er-wrap" id="er-container">
+        <div class="er-inner" id="er-inner">
+          <pre class="mermaid" id="mermaid-diagram"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View: Table Cards ────────────────────────────────── -->
+    <div id="view-cards" style="display:none;">
+      <div class="card mb-16" style="padding:10px 16px;">
+        <input type="text" id="table-search" class="filter-input" style="max-width:300px;" placeholder="ค้นหาตาราง / column...">
+      </div>
+      <div class="er-grid" id="table-cards-grid"></div>
+    </div>
+
+    <!-- ── View: Relations ──────────────────────────────────── -->
+    <div id="view-relations" style="display:none;">
+      <div class="grid-2">
+        <div class="rel-section">
+          <h3 style="font-size:24px;font-weight:700;color:#1a4480;margin:0 0 16px;">🔗 Transaction → Transaction</h3>
+          <div id="rel-tx-tx"></div>
+        </div>
+        <div class="rel-section">
+          <h3 style="font-size:24px;font-weight:700;color:#065f46;margin:0 0 16px;">🔗 Transaction → Master</h3>
+          <div id="rel-tx-m"></div>
+        </div>
+      </div>
+      <div class="rel-section" style="margin-top:16px;">
+        <h3 style="font-size:24px;font-weight:700;color:#5b21b6;margin:0 0 16px;">🔗 Master → Master</h3>
+        <div id="rel-m-m"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Mermaid CDN -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('report');
+document.getElementById('topbar').innerHTML = buildTopbar('รายงาน', 'ER Diagram');
+
+// ─── Mermaid config ───────────────────────────────────────────
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'default',
+  er: {
+    diagramPadding: 20,
+    layoutDirection: 'TB',
+    minEntityWidth: 100,
+    minEntityHeight: 75,
+    entityPadding: 15,
+    useMaxWidth: false
+  },
+  themeVariables: {
+    primaryColor: '#dbeafe',
+    primaryBorderColor: '#3b82f6',
+    secondaryColor: '#d1fae5',
+    tertiaryColor: '#fef3c7',
+    fontSize: '13px'
+  }
+});
+
+// ─── ER Diagram definition ────────────────────────────────────
+const MERMAID_CORE = `erDiagram
+
+  %% ══════════════════════════════════════════════
+  %% TRANSACTION TABLES
+  %% ══════════════════════════════════════════════
+
+  T_CASE_REQUEST {
+    bigint  REQUEST_ID PK
+    varchar REQUEST_NO UK
+    varchar REQUEST_TYPE_CODE
+    varchar CASE_CATEGORY_CODE FK
+    varchar CASE_SUB_CATEGORY_CODE FK
+    varchar DEBT_TYPE_CODE FK
+    varchar REQUEST_STATUS_CODE FK
+    varchar SOURCE_DEPARTMENT_CODE FK
+    bigint  REQUEST_BY_USER_ID FK
+    date    REQUEST_DATE
+    varchar REQUEST_TITLE
+    bool    IS_MIGRATE
+    varchar MIGRATE_REF_NO
+    varchar ACCIDENT_REF_ID
+    varchar CONTRACT_NO
+    varchar CONTRACTOR_NAME
+    varchar VEHICLE_REG_NO
+    varchar ASSIGNED_DEPARTMENT_CODE FK
+    bigint  ASSIGNED_USER_ID FK
+    bigint  CREATED_CASE_ID FK
+  }
+
+  T_CASE_REQUEST_DOCUMENT {
+    bigint   REQUEST_DOCUMENT_ID PK
+    bigint   REQUEST_ID FK
+    varchar  DOCUMENT_TYPE_CODE FK
+    varchar  DOCUMENT_NAME
+    varchar  DOCUMENT_NO
+    date     DOCUMENT_DATE
+    varchar  FILE_NAME
+    varchar  FILE_PATH
+    varchar  FILE_EXT
+    bigint   FILE_SIZE
+    bigint   UPLOADED_BY_USER_ID FK
+    datetime UPLOADED_DATETIME
+  }
+
+  T_CASE {
+    bigint   CASE_ID PK
+    varchar  CASE_NO UK
+    bigint   CREATED_FROM_REQUEST_ID FK
+    varchar  CASE_ORIGIN_TYPE
+    varchar  CASE_CATEGORY_CODE FK
+    varchar  CASE_SUB_CATEGORY_CODE FK
+    varchar  DEBT_TYPE_CODE FK
+    varchar  CASE_TITLE
+    varchar  CASE_TYPE_CODE FK
+    varchar  CURRENT_STATUS_CODE FK
+    varchar  CURRENT_SUB_STATUS_CODE FK
+    varchar  CURRENT_DEPARTMENT_CODE FK
+    bigint   CURRENT_ASSIGNEE_USER_ID FK
+    varchar  SOURCE_DEPARTMENT_CODE FK
+    varchar  CASE_RESULT_CODE FK
+    date     CASE_OPEN_DATE
+    date     CASE_CLOSE_DATE
+    decimal  CLAIM_AMOUNT
+    decimal  PAID_AMOUNT
+    decimal  OUTSTANDING_AMOUNT
+    varchar  PLAINTIFF_NAME
+    varchar  DEFENDANT_NAME
+    bool     IS_MIGRATE
+    varchar  ACCIDENT_REF_ID
+    varchar  CONTRACT_NO
+    varchar  LEGAL_CASE_NO
+    date     STATUTE_LIMITATION_DATE
+    date     ENFORCEMENT_EXPIRY_DATE
+    datetime LAST_ACTION_DATETIME
+  }
+
+  T_CASE_STATUS_HISTORY {
+    bigint   STATUS_HISTORY_ID PK
+    bigint   CASE_ID FK
+    bigint   REQUEST_ID FK
+    varchar  FROM_CASE_TYPE_CODE
+    varchar  TO_CASE_TYPE_CODE
+    varchar  FROM_STATUS_CODE
+    varchar  TO_STATUS_CODE
+    varchar  FROM_SUB_STATUS_CODE
+    varchar  TO_SUB_STATUS_CODE
+    varchar  ACTION_CODE
+    text     ACTION_NOTE
+    varchar  FROM_DEPARTMENT_CODE
+    varchar  TO_DEPARTMENT_CODE
+    bigint   ACTION_BY_USER_ID FK
+    varchar  ACTION_BY_NAME
+    datetime ACTION_DATETIME
+  }
+
+  T_CASE_ACTIVITY {
+    bigint   ACTIVITY_ID PK
+    bigint   CASE_ID FK
+    varchar  CASE_TYPE_CODE
+    varchar  STATUS_CODE
+    varchar  ACTIVITY_TYPE_CODE FK
+    date     ACTIVITY_DATE
+    date     DUE_DATE
+    varchar  RESULT_CODE
+    text     NOTE
+    bigint   ACTION_BY_USER_ID FK
+    bigint   RELATED_DOCUMENT_ID FK
+    bool     IS_COMPLETED
+    datetime COMPLETED_DATETIME
+  }
+
+  T_CASE_DOCUMENT {
+    bigint   DOCUMENT_ID PK
+    bigint   CASE_ID FK
+    bigint   REQUEST_ID FK
+    bigint   CHECKLIST_ID FK
+    varchar  CASE_TYPE_CODE
+    varchar  DOCUMENT_TYPE_CODE FK
+    varchar  DOCUMENT_NAME
+    varchar  DOCUMENT_NO
+    date     DOCUMENT_DATE
+    varchar  FILE_NAME
+    varchar  FILE_PATH
+    bool     IS_CHECKLIST_ITEM
+    bool     IS_RECEIVED
+    date     RECEIVED_DATE
+    text     PENDING_REASON
+    bigint   UPLOADED_BY_USER_ID FK
+    bool     IS_LATEST_VERSION
+  }
+
+  T_CASE_HANDOVER {
+    bigint   HANDOVER_ID PK
+    bigint   CASE_ID FK
+    varchar  FROM_CASE_TYPE_CODE
+    varchar  TO_CASE_TYPE_CODE
+    varchar  FROM_DEPARTMENT_CODE
+    varchar  TO_DEPARTMENT_CODE
+    bigint   FROM_USER_ID FK
+    bigint   TO_USER_ID FK
+    varchar  HANDOVER_TYPE_CODE
+    varchar  HANDOVER_STATUS_CODE
+    text     HANDOVER_NOTE
+    text     RETURN_REASON
+    datetime SENT_DATETIME
+    datetime RECEIVED_DATETIME
+    datetime RETURNED_DATETIME
+  }
+
+  T_CASE_REVIEW {
+    bigint   REVIEW_ID PK
+    bigint   CASE_ID FK
+    varchar  CASE_TYPE_CODE
+    varchar  STATUS_CODE
+    varchar  REVIEW_STATUS_CODE
+    varchar  REVIEW_RESULT_CODE FK
+    text     REVIEW_NOTE
+    bigint   REVIEW_BY_USER_ID FK
+    varchar  REVIEW_BY_NAME
+    datetime REVIEW_DATETIME
+  }
+
+  T_CASE_ASSET {
+    bigint  ASSET_ID PK
+    bigint  CASE_ID FK
+    varchar ASSET_TYPE_CODE
+    text    ASSET_DESC
+    varchar ASSET_OWNER_NAME
+    date    FOUND_DATE
+    varchar ASSET_STATUS_CODE FK
+    varchar SEIZURE_STATUS_CODE
+    decimal ESTIMATED_VALUE
+    decimal RECOVERED_AMOUNT
+    bool    IS_CLOSED
+    varchar CLOSED_REASON_CODE
+  }
+
+  T_CONTRACT_DEBT {
+    bigint  CONTRACT_DEBT_ID PK
+    bigint  CASE_ID FK
+    varchar CONTRACT_NO
+    varchar CONTRACTOR_NAME
+    varchar VEHICLE_REG_NO
+    varchar VEHICLE_SERVICE_TYPE
+    int     UNPAID_PERIOD_COUNT
+    date    WARNING_1_DATE
+    date    WARNING_2_DATE
+    date    CONTRACT_TERMINATION_DATE
+    date    DEBT_CONFIRM_REQUEST_DATE
+    date    DEBT_CONFIRM_DATE
+    decimal GUARANTEE_AMOUNT
+    decimal CONFISCATED_AMOUNT
+    date    REMOVE_BORKHOR11_DATE
+    date    SEND_LEGAL_DATE
+    date    DEBT_STOP_DATE
+    varchar APPROVAL_TYPE_CODE
+    date    APPROVAL_DATE
+    bigint  APPROVER_USER_ID FK
+  }
+
+  T_LITIGATION_DETAIL {
+    bigint  LITIGATION_DETAIL_ID PK
+    bigint  CASE_ID FK
+    varchar ORG_PARTY_ROLE_CODE
+    varchar COURT_NAME
+    varchar BLACK_CASE_NO
+    varchar RED_CASE_NO
+    date    COURT_RECEIVE_DATE
+    date    FILED_DATE
+    date    APPROVAL_REQUEST_DATE
+    date    APPROVAL_DATE
+    date    JUDGEMENT_DATE
+    varchar JUDGEMENT_RESULT_CODE
+    varchar COURT_LEVEL_CODE
+    date    APPEAL_FILED_DATE
+    date    APPEAL_JUDGEMENT_DATE
+    varchar APPEAL_RESULT_CODE
+    text    COURT_NOTE
+  }
+
+  T_CASE_PAYMENT {
+    bigint   PAYMENT_ID PK
+    bigint   CASE_ID FK
+    date     PAYMENT_DATE
+    decimal  AMOUNT
+    varchar  PAYMENT_TYPE_CODE
+    varchar  RECEIPT_NO
+    text     REMARK
+    bigint   RECORDED_BY_USER_ID FK
+    datetime CREATED_DATETIME
+  }
+
+  T_COURT_PROCEEDING {
+    bigint   PROCEEDING_ID PK
+    bigint   CASE_ID FK
+    varchar  COURT_LEVEL_CODE
+    varchar  COURT_NAME
+    varchar  PROCEEDING_CASE_NO
+    date     APPEAL_FILED_DATE
+    date     JUDGEMENT_DATE
+    varchar  JUDGEMENT_RESULT_CODE
+    text     NOTE
+    bigint   CREATED_BY_USER_ID FK
+    datetime CREATED_DATETIME
+  }
+
+  T_NOTIFICATION {
+    bigint   NOTIFICATION_ID PK
+    bigint   CASE_ID FK
+    bigint   USER_ID FK
+    varchar  NOTIFICATION_TYPE
+    text     MESSAGE
+    datetime SENT_DATETIME
+    bool     IS_READ
+    datetime READ_DATETIME
+  }
+
+  T_CASE_PARTY {
+    bigint  PARTY_ID PK
+    bigint  CASE_ID FK
+    varchar PARTY_ROLE_CODE
+    varchar PARTY_NAME
+    varchar ID_CARD_NO
+    text    ADDRESS
+    varchar PHONE_NO
+    bool    IS_PRIMARY
+  }
+
+  %% ══════════════════════════════════════════════
+  %% MASTER TABLES
+  %% ══════════════════════════════════════════════
+
+  M_CASE_CATEGORY {
+    varchar CASE_CATEGORY_CODE PK
+    varchar CASE_CATEGORY_NAME_TH
+    varchar CASE_CATEGORY_NAME_EN
+    int     SEQ_NO
+    bool    IS_ACTIVE
+  }
+
+  M_CASE_SUB_CATEGORY {
+    varchar CASE_SUB_CATEGORY_CODE PK
+    varchar CASE_CATEGORY_CODE FK
+    varchar CASE_SUB_CATEGORY_NAME_TH
+    varchar CASE_SUB_CATEGORY_NAME_EN
+    int     SEQ_NO
+  }
+
+  M_DEBT_TYPE {
+    varchar DEBT_TYPE_CODE PK
+    varchar DEBT_TYPE_NAME_TH
+    varchar DEBT_TYPE_NAME_EN
+    int     SEQ_NO
+  }
+
+  M_REQUEST_STATUS {
+    varchar REQUEST_STATUS_CODE PK
+    varchar REQUEST_STATUS_NAME_TH
+    varchar REQUEST_STATUS_NAME_EN
+    int     SEQ_NO
+  }
+
+  M_CASE_TYPE {
+    varchar CASE_TYPE_CODE PK
+    varchar CASE_TYPE_NAME_TH
+    varchar CASE_TYPE_NAME_EN
+    int     SEQ_NO
+  }
+
+  M_CASE_STATUS {
+    varchar STATUS_CODE PK
+    varchar CASE_TYPE_CODE FK
+    varchar STATUS_NAME_TH
+    varchar STATUS_NAME_EN
+    bool    IS_FINAL_STATUS
+    int     SEQ_NO
+  }
+
+  M_CASE_SUB_STATUS {
+    varchar SUB_STATUS_CODE PK
+    varchar STATUS_CODE FK
+    varchar SUB_STATUS_NAME_TH
+    varchar SUB_STATUS_NAME_EN
+    bool    IS_FINAL_RESULT
+    int     SEQ_NO
+  }
+
+  M_DOCUMENT_TYPE {
+    varchar DOCUMENT_TYPE_CODE PK
+    varchar DOCUMENT_TYPE_NAME_TH
+    varchar DOCUMENT_TYPE_NAME_EN
+    varchar CASE_CATEGORY_CODE FK
+    bool    IS_REQUIRED
+    int     SEQ_NO
+  }
+
+  M_DOCUMENT_CHECKLIST {
+    bigint  CHECKLIST_ID PK
+    varchar CASE_CATEGORY_CODE FK
+    int     SEQ_NO
+    varchar DOCUMENT_NAME
+    varchar DOCUMENT_TYPE_CODE FK
+    bool    IS_REQUIRED
+    bool    IS_MULTI_UPLOAD
+    bool    IS_DELAY_ALLOWED
+    date    EFFECTIVE_START_DATE
+    date    EFFECTIVE_END_DATE
+  }
+
+  M_ACTIVITY_TYPE {
+    varchar ACTIVITY_TYPE_CODE PK
+    varchar ACTIVITY_TYPE_NAME_TH
+    varchar CASE_TYPE_CODE FK
+    int     SEQ_NO
+  }
+
+  M_CASE_RESULT {
+    varchar CASE_RESULT_CODE PK
+    varchar CASE_RESULT_NAME_TH
+    int     SEQ_NO
+  }
+
+  M_ASSET_STATUS {
+    varchar ASSET_STATUS_CODE PK
+    varchar ASSET_STATUS_NAME_TH
+    int     SEQ_NO
+  }
+
+  M_DEPARTMENT {
+    varchar DEPARTMENT_CODE PK
+    varchar DEPARTMENT_NAME_TH
+    varchar DEPARTMENT_NAME_EN
+    varchar DEPARTMENT_GROUP
+  }
+
+  M_ROLE {
+    bigint  ROLE_ID PK
+    varchar ROLE_NAME_TH
+    varchar ROLE_CODE
+    varchar DESCRIPTION
+  }
+
+  M_USER {
+    bigint  USER_ID PK
+    varchar USER_CODE UK
+    varchar FULL_NAME
+    bigint  ROLE_ID FK
+    varchar DEPARTMENT_CODE FK
+    varchar EMAIL
+    varchar PHONE_NO
+    bool    IS_ACTIVE
+  }
+
+  M_USER_ROLE {
+    bigint  USER_ROLE_ID PK
+    bigint  USER_ID FK
+    bigint  ROLE_ID FK
+    bool    IS_PRIMARY
+    date    EFFECTIVE_DATE
+  }
+
+  M_STATUS_TRANSITION {
+    bigint  TRANSITION_ID PK
+    varchar CASE_TYPE_CODE FK
+    varchar FROM_STATUS_CODE FK
+    varchar TO_STATUS_CODE FK
+    bigint  REQUIRED_ROLE_ID FK
+    bool    IS_ACTIVE
+  }
+
+  M_ACTION_PERMISSION {
+    bigint  PERMISSION_ID PK
+    bigint  ROLE_ID FK
+    varchar CASE_TYPE_CODE FK
+    varchar FROM_STATUS_CODE
+    varchar ALLOWED_ACTION_CODE
+    bool    IS_ACTIVE
+  }
+
+  %% ══════════════════════════════════════════════
+  %% RELATIONSHIPS
+  %% ══════════════════════════════════════════════
+
+  %% T_CASE_REQUEST → Masters
+  T_CASE_REQUEST }o--|| M_CASE_CATEGORY      : "CASE_CATEGORY_CODE"
+  T_CASE_REQUEST }o--o| M_CASE_SUB_CATEGORY  : "CASE_SUB_CATEGORY_CODE"
+  T_CASE_REQUEST }o--o| M_DEBT_TYPE          : "DEBT_TYPE_CODE"
+  T_CASE_REQUEST }o--|| M_REQUEST_STATUS     : "REQUEST_STATUS_CODE"
+  T_CASE_REQUEST }o--o| M_DEPARTMENT         : "SOURCE_DEPT"
+  T_CASE_REQUEST }o--o| M_USER               : "REQUEST_BY"
+
+  %% T_CASE_REQUEST_DOCUMENT → T_CASE_REQUEST
+  T_CASE_REQUEST_DOCUMENT }o--|| T_CASE_REQUEST  : "REQUEST_ID"
+  T_CASE_REQUEST_DOCUMENT }o--o| M_DOCUMENT_TYPE : "DOCUMENT_TYPE_CODE"
+  T_CASE_REQUEST_DOCUMENT }o--o| M_USER          : "UPLOADED_BY"
+
+  %% T_CASE → T_CASE_REQUEST
+  T_CASE }o--o| T_CASE_REQUEST : "CREATED_FROM_REQUEST_ID"
+
+  %% T_CASE → Masters
+  T_CASE }o--|| M_CASE_CATEGORY     : "CASE_CATEGORY_CODE"
+  T_CASE }o--o| M_CASE_SUB_CATEGORY : "CASE_SUB_CATEGORY_CODE"
+  T_CASE }o--o| M_DEBT_TYPE         : "DEBT_TYPE_CODE"
+  T_CASE }o--|| M_CASE_TYPE         : "CASE_TYPE_CODE"
+  T_CASE }o--|| M_CASE_STATUS       : "CURRENT_STATUS_CODE"
+  T_CASE }o--o| M_CASE_SUB_STATUS   : "CURRENT_SUB_STATUS_CODE"
+  T_CASE }o--|| M_DEPARTMENT        : "CURRENT_DEPARTMENT"
+  T_CASE }o--o| M_USER              : "ASSIGNEE"
+  T_CASE }o--o| M_CASE_RESULT       : "CASE_RESULT_CODE"
+
+  %% Child Transaction → T_CASE
+  T_CASE_STATUS_HISTORY }o--|| T_CASE          : "CASE_ID"
+  T_CASE_ACTIVITY       }o--|| T_CASE          : "CASE_ID"
+  T_CASE_DOCUMENT       }o--|| T_CASE          : "CASE_ID"
+  T_CASE_HANDOVER       }o--|| T_CASE          : "CASE_ID"
+  T_CASE_REVIEW         }o--|| T_CASE          : "CASE_ID"
+  T_CASE_ASSET          }o--|| T_CASE          : "CASE_ID"
+  T_CONTRACT_DEBT       }o--|| T_CASE          : "CASE_ID"
+  T_LITIGATION_DETAIL   }o--|| T_CASE          : "CASE_ID"
+
+  %% T_CASE_ACTIVITY → Master
+  T_CASE_ACTIVITY }o--|| M_ACTIVITY_TYPE : "ACTIVITY_TYPE_CODE"
+  T_CASE_ACTIVITY }o--o| M_USER          : "ACTION_BY"
+  T_CASE_ACTIVITY }o--o| T_CASE_DOCUMENT : "RELATED_DOCUMENT_ID"
+
+  %% T_CASE_DOCUMENT → Masters
+  T_CASE_DOCUMENT }o--o| M_DOCUMENT_CHECKLIST : "CHECKLIST_ID"
+  T_CASE_DOCUMENT }o--o| M_DOCUMENT_TYPE      : "DOCUMENT_TYPE_CODE"
+  T_CASE_DOCUMENT }o--o| M_USER               : "UPLOADED_BY"
+
+  %% T_CASE_HANDOVER → Users
+  T_CASE_HANDOVER }o--o| M_USER : "FROM_USER"
+  T_CASE_HANDOVER }o--o| M_USER : "TO_USER"
+
+  %% T_CASE_STATUS_HISTORY → User
+  T_CASE_STATUS_HISTORY }o--o| M_USER : "ACTION_BY"
+
+  %% T_CASE_REVIEW → Masters
+  T_CASE_REVIEW }o--o| M_CASE_RESULT : "REVIEW_RESULT_CODE"
+  T_CASE_REVIEW }o--o| M_USER        : "REVIEW_BY"
+
+  %% T_CASE_ASSET → Master
+  T_CASE_ASSET }o--o| M_ASSET_STATUS : "ASSET_STATUS_CODE"
+
+  %% New Transaction → T_CASE
+  T_CASE_PAYMENT     }o--|| T_CASE : "CASE_ID"
+  T_COURT_PROCEEDING }o--|| T_CASE : "CASE_ID"
+  T_NOTIFICATION     }o--|| T_CASE : "CASE_ID"
+  T_CASE_PARTY       }o--|| T_CASE : "CASE_ID"
+
+  %% New Transaction → M_USER
+  T_CASE_PAYMENT     }o--o| M_USER : "RECORDED_BY"
+  T_COURT_PROCEEDING }o--o| M_USER : "CREATED_BY"
+  T_NOTIFICATION     }o--|| M_USER : "USER_ID"
+  T_CONTRACT_DEBT    }o--o| M_USER : "APPROVER"
+
+  %% M_USER_ROLE
+  M_USER_ROLE }o--|| M_USER : "USER_ID"
+  M_USER_ROLE }o--|| M_ROLE : "ROLE_ID"
+
+  %% M_STATUS_TRANSITION
+  M_STATUS_TRANSITION }o--o| M_CASE_TYPE   : "CASE_TYPE_CODE"
+  M_STATUS_TRANSITION }o--o| M_CASE_STATUS : "FROM_STATUS"
+  M_STATUS_TRANSITION }o--o| M_ROLE        : "REQUIRED_ROLE"
+
+  %% M_ACTION_PERMISSION
+  M_ACTION_PERMISSION }o--|| M_ROLE      : "ROLE_ID"
+  M_ACTION_PERMISSION }o--o| M_CASE_TYPE : "CASE_TYPE_CODE"
+
+  %% Master → Master
+  M_CASE_SUB_CATEGORY  }o--|| M_CASE_CATEGORY    : "CASE_CATEGORY_CODE"
+  M_DOCUMENT_TYPE      }o--o| M_CASE_CATEGORY     : "CASE_CATEGORY_CODE"
+  M_DOCUMENT_CHECKLIST }o--|| M_CASE_CATEGORY     : "CASE_CATEGORY_CODE"
+  M_DOCUMENT_CHECKLIST }o--o| M_DOCUMENT_TYPE     : "DOCUMENT_TYPE_CODE"
+  M_CASE_STATUS        }o--|| M_CASE_TYPE         : "CASE_TYPE_CODE"
+  M_CASE_SUB_STATUS    }o--|| M_CASE_STATUS       : "STATUS_CODE"
+  M_ACTIVITY_TYPE      }o--o| M_CASE_TYPE         : "CASE_TYPE_CODE"
+  M_USER               }o--|| M_ROLE              : "ROLE_ID"
+  M_USER               }o--o| M_DEPARTMENT        : "DEPARTMENT_CODE"
+`;
+
+// ─── Table Card Data ──────────────────────────────────────────
+const TABLE_DEFS = [
+  { name:'T_CASE_REQUEST', type:'transaction', desc:'คำขอ/เรื่องนำเข้า', cols:[
+    {name:'REQUEST_ID',PK:true,type:'bigint'},{name:'REQUEST_NO',UK:true,type:'varchar'},
+    {name:'REQUEST_TYPE_CODE',type:'varchar'},{name:'CASE_CATEGORY_CODE',FK:true,type:'varchar'},
+    {name:'CASE_SUB_CATEGORY_CODE',FK:true,type:'varchar'},{name:'DEBT_TYPE_CODE',FK:true,type:'varchar'},
+    {name:'REQUEST_STATUS_CODE',FK:true,type:'varchar'},{name:'SOURCE_DEPARTMENT_CODE',FK:true,type:'varchar'},
+    {name:'REQUEST_BY_USER_ID',FK:true,type:'bigint'},{name:'REQUEST_DATE',type:'date'},
+    {name:'IS_MIGRATE',type:'bool'},{name:'ACCIDENT_REF_ID',type:'varchar'},
+    {name:'CONTRACT_NO',type:'varchar'},{name:'CREATED_CASE_ID',FK:true,type:'bigint'}
+  ]},
+  { name:'T_CASE_REQUEST_DOCUMENT', type:'transaction', desc:'เอกสารในคำขอ', cols:[
+    {name:'REQUEST_DOCUMENT_ID',PK:true,type:'bigint'},{name:'REQUEST_ID',FK:true,type:'bigint'},
+    {name:'DOCUMENT_TYPE_CODE',FK:true,type:'varchar'},{name:'DOCUMENT_NAME',type:'varchar'},
+    {name:'FILE_PATH',type:'varchar'},{name:'UPLOADED_BY_USER_ID',FK:true,type:'bigint'},
+    {name:'UPLOADED_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_CASE', type:'transaction', desc:'ตารางคดีหลัก (ทุก Stage)', cols:[
+    {name:'CASE_ID',PK:true,type:'bigint'},{name:'CASE_NO',UK:true,type:'varchar'},
+    {name:'CREATED_FROM_REQUEST_ID',FK:true,type:'bigint'},{name:'CASE_ORIGIN_TYPE',type:'varchar'},
+    {name:'CASE_CATEGORY_CODE',FK:true,type:'varchar'},{name:'CASE_SUB_CATEGORY_CODE',FK:true,type:'varchar'},
+    {name:'CASE_TYPE_CODE',FK:true,type:'varchar'},{name:'CURRENT_STATUS_CODE',FK:true,type:'varchar'},
+    {name:'CURRENT_SUB_STATUS_CODE',FK:true,type:'varchar'},{name:'CURRENT_DEPARTMENT_CODE',FK:true,type:'varchar'},
+    {name:'CURRENT_ASSIGNEE_USER_ID',FK:true,type:'bigint'},{name:'CASE_RESULT_CODE',FK:true,type:'varchar'},
+    {name:'CASE_OPEN_DATE',type:'date'},{name:'CLAIM_AMOUNT',type:'decimal'},
+    {name:'PAID_AMOUNT',type:'decimal'},{name:'OUTSTANDING_AMOUNT',type:'decimal'},
+    {name:'PLAINTIFF_NAME',type:'varchar'},{name:'DEFENDANT_NAME',type:'varchar'},
+    {name:'IS_MIGRATE',type:'bool'},{name:'LEGAL_CASE_NO',type:'varchar'}
+  ]},
+  { name:'T_CASE_STATUS_HISTORY', type:'transaction', desc:'Audit Trail / Timeline', cols:[
+    {name:'STATUS_HISTORY_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'FROM_STATUS_CODE',type:'varchar'},{name:'TO_STATUS_CODE',type:'varchar'},
+    {name:'ACTION_CODE',type:'varchar'},{name:'ACTION_NOTE',type:'text'},
+    {name:'FROM_DEPARTMENT_CODE',type:'varchar'},{name:'TO_DEPARTMENT_CODE',type:'varchar'},
+    {name:'ACTION_BY_USER_ID',FK:true,type:'bigint'},{name:'ACTION_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_CASE_ACTIVITY', type:'transaction', desc:'กิจกรรมการดำเนินงาน', cols:[
+    {name:'ACTIVITY_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'ACTIVITY_TYPE_CODE',FK:true,type:'varchar'},{name:'ACTIVITY_DATE',type:'date'},
+    {name:'DUE_DATE',type:'date'},{name:'RESULT_CODE',type:'varchar'},{name:'NOTE',type:'text'},
+    {name:'ACTION_BY_USER_ID',FK:true,type:'bigint'},{name:'IS_COMPLETED',type:'bool'}
+  ]},
+  { name:'T_CASE_DOCUMENT', type:'transaction', desc:'เอกสารแนบคดี', cols:[
+    {name:'DOCUMENT_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'CHECKLIST_ID',FK:true,type:'bigint'},{name:'DOCUMENT_TYPE_CODE',FK:true,type:'varchar'},
+    {name:'DOCUMENT_NAME',type:'varchar'},{name:'FILE_PATH',type:'varchar'},
+    {name:'IS_CHECKLIST_ITEM',type:'bool'},{name:'IS_RECEIVED',type:'bool'},
+    {name:'UPLOADED_BY_USER_ID',FK:true,type:'bigint'},{name:'IS_LATEST_VERSION',type:'bool'}
+  ]},
+  { name:'T_CASE_HANDOVER', type:'transaction', desc:'รับ-ส่งงานระหว่าง Stage', cols:[
+    {name:'HANDOVER_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'FROM_CASE_TYPE_CODE',type:'varchar'},{name:'TO_CASE_TYPE_CODE',type:'varchar'},
+    {name:'FROM_DEPARTMENT_CODE',type:'varchar'},{name:'TO_DEPARTMENT_CODE',type:'varchar'},
+    {name:'FROM_USER_ID',FK:true,type:'bigint'},{name:'TO_USER_ID',FK:true,type:'bigint'},
+    {name:'HANDOVER_TYPE_CODE',type:'varchar'},{name:'HANDOVER_STATUS_CODE',type:'varchar'},
+    {name:'SENT_DATETIME',type:'datetime'},{name:'RECEIVED_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_CASE_REVIEW', type:'transaction', desc:'ผลสอบทานหัวหน้างาน', cols:[
+    {name:'REVIEW_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'REVIEW_STATUS_CODE',type:'varchar'},{name:'REVIEW_RESULT_CODE',FK:true,type:'varchar'},
+    {name:'REVIEW_NOTE',type:'text'},{name:'REVIEW_BY_USER_ID',FK:true,type:'bigint'},
+    {name:'REVIEW_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_CASE_ASSET', type:'transaction', desc:'ทรัพย์สิน (บังคับคดี)', cols:[
+    {name:'ASSET_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'ASSET_TYPE_CODE',type:'varchar'},{name:'ASSET_DESC',type:'text'},
+    {name:'ASSET_OWNER_NAME',type:'varchar'},{name:'FOUND_DATE',type:'date'},
+    {name:'ASSET_STATUS_CODE',FK:true,type:'varchar'},{name:'SEIZURE_STATUS_CODE',type:'varchar'},
+    {name:'ESTIMATED_VALUE',type:'decimal'},{name:'RECOVERED_AMOUNT',type:'decimal'}
+  ]},
+  { name:'T_CONTRACT_DEBT', type:'transaction', desc:'รายละเอียดหนี้สัญญา/รถร่วม', cols:[
+    {name:'CONTRACT_DEBT_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'CONTRACT_NO',type:'varchar'},{name:'CONTRACTOR_NAME',type:'varchar'},
+    {name:'VEHICLE_REG_NO',type:'varchar'},{name:'VEHICLE_SERVICE_TYPE',type:'varchar'},
+    {name:'UNPAID_PERIOD_COUNT',type:'int'},{name:'WARNING_1_DATE',type:'date'},
+    {name:'WARNING_2_DATE',type:'date'},{name:'CONTRACT_TERMINATION_DATE',type:'date'},
+    {name:'GUARANTEE_AMOUNT',type:'decimal'},{name:'CONFISCATED_AMOUNT',type:'decimal'},
+    {name:'APPROVAL_TYPE_CODE',type:'varchar',note:'v3'},{name:'APPROVAL_DATE',type:'date',note:'v3'},
+    {name:'APPROVER_USER_ID',FK:true,type:'bigint',note:'v3'}
+  ]},
+  { name:'T_LITIGATION_DETAIL', type:'transaction', desc:'รายละเอียดการดำเนินคดีศาล', cols:[
+    {name:'LITIGATION_DETAIL_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'ORG_PARTY_ROLE_CODE',type:'varchar'},{name:'COURT_NAME',type:'varchar'},
+    {name:'BLACK_CASE_NO',type:'varchar'},{name:'RED_CASE_NO',type:'varchar'},
+    {name:'COURT_RECEIVE_DATE',type:'date'},{name:'FILED_DATE',type:'date'},
+    {name:'JUDGEMENT_DATE',type:'date'},{name:'JUDGEMENT_RESULT_CODE',type:'varchar'},
+    {name:'COURT_LEVEL_CODE',type:'varchar',note:'v3'},{name:'APPEAL_FILED_DATE',type:'date',note:'v3'},
+    {name:'APPEAL_JUDGEMENT_DATE',type:'date',note:'v3'},{name:'APPEAL_RESULT_CODE',type:'varchar',note:'v3'}
+  ]},
+  // Masters
+  { name:'M_CASE_CATEGORY', type:'master', desc:'ประเภทงานคดี', cols:[
+    {name:'CASE_CATEGORY_CODE',PK:true,type:'varchar'},{name:'CASE_CATEGORY_NAME_TH',type:'varchar'},
+    {name:'SEQ_NO',type:'int'},{name:'IS_ACTIVE',type:'bool'}
+  ]},
+  { name:'M_CASE_SUB_CATEGORY', type:'master', desc:'ประเภทย่อยของงานคดี', cols:[
+    {name:'CASE_SUB_CATEGORY_CODE',PK:true,type:'varchar'},{name:'CASE_CATEGORY_CODE',FK:true,type:'varchar'},
+    {name:'CASE_SUB_CATEGORY_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_DEBT_TYPE', type:'master', desc:'ประเภทหนี้', cols:[
+    {name:'DEBT_TYPE_CODE',PK:true,type:'varchar'},{name:'DEBT_TYPE_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_REQUEST_STATUS', type:'master', desc:'สถานะคำขอ', cols:[
+    {name:'REQUEST_STATUS_CODE',PK:true,type:'varchar'},{name:'REQUEST_STATUS_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_CASE_TYPE', type:'master', desc:'ประเภทขั้นตอนคดี (Stage)', cols:[
+    {name:'CASE_TYPE_CODE',PK:true,type:'varchar'},{name:'CASE_TYPE_NAME_TH',type:'varchar'},
+    {name:'SEQ_NO',type:'int'}
+  ]},
+  { name:'M_CASE_STATUS', type:'master', desc:'สถานะหลักของคดี', cols:[
+    {name:'STATUS_CODE',PK:true,type:'varchar'},{name:'CASE_TYPE_CODE',FK:true,type:'varchar'},
+    {name:'STATUS_NAME_TH',type:'varchar'},{name:'IS_FINAL_STATUS',type:'bool'}
+  ]},
+  { name:'M_CASE_SUB_STATUS', type:'master', desc:'สถานะย่อยของคดี', cols:[
+    {name:'SUB_STATUS_CODE',PK:true,type:'varchar'},{name:'STATUS_CODE',FK:true,type:'varchar'},
+    {name:'SUB_STATUS_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_DOCUMENT_TYPE', type:'master', desc:'ประเภทเอกสาร', cols:[
+    {name:'DOCUMENT_TYPE_CODE',PK:true,type:'varchar'},{name:'DOCUMENT_TYPE_NAME_TH',type:'varchar'},
+    {name:'CASE_CATEGORY_CODE',FK:true,type:'varchar'}
+  ]},
+  { name:'M_DOCUMENT_CHECKLIST', type:'master', desc:'Checklist เอกสารงานบริหารสัญญา', cols:[
+    {name:'CHECKLIST_ID',PK:true,type:'bigint'},{name:'CASE_CATEGORY_CODE',FK:true,type:'varchar'},
+    {name:'SEQ_NO',type:'int'},{name:'DOCUMENT_NAME',type:'varchar'},
+    {name:'DOCUMENT_TYPE_CODE',FK:true,type:'varchar'},
+    {name:'IS_REQUIRED',type:'bool'},{name:'IS_MULTI_UPLOAD',type:'bool'},
+    {name:'IS_DELAY_ALLOWED',type:'bool'}
+  ]},
+  { name:'M_ACTIVITY_TYPE', type:'master', desc:'ประเภทกิจกรรม', cols:[
+    {name:'ACTIVITY_TYPE_CODE',PK:true,type:'varchar'},{name:'ACTIVITY_TYPE_NAME_TH',type:'varchar'},
+    {name:'CASE_TYPE_CODE',FK:true,type:'varchar'}
+  ]},
+  { name:'M_CASE_RESULT', type:'master', desc:'ผลลัพธ์คดี', cols:[
+    {name:'CASE_RESULT_CODE',PK:true,type:'varchar'},{name:'CASE_RESULT_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_ASSET_STATUS', type:'master', desc:'สถานะทรัพย์', cols:[
+    {name:'ASSET_STATUS_CODE',PK:true,type:'varchar'},{name:'ASSET_STATUS_NAME_TH',type:'varchar'}
+  ]},
+  { name:'M_DEPARTMENT', type:'master', desc:'หน่วยงาน', cols:[
+    {name:'DEPARTMENT_CODE',PK:true,type:'varchar'},{name:'DEPARTMENT_NAME_TH',type:'varchar'},
+    {name:'DEPARTMENT_GROUP',type:'varchar'}
+  ]},
+  { name:'M_ROLE', type:'master', desc:'บทบาทผู้ใช้งาน', cols:[
+    {name:'ROLE_ID',PK:true,type:'bigint'},{name:'ROLE_NAME_TH',type:'varchar'},
+    {name:'ROLE_CODE',type:'varchar'}
+  ]},
+  { name:'M_USER', type:'master', desc:'ผู้ใช้งานระบบ', cols:[
+    {name:'USER_ID',PK:true,type:'bigint'},{name:'USER_CODE',UK:true,type:'varchar'},
+    {name:'FULL_NAME',type:'varchar'},{name:'ROLE_ID',FK:true,type:'bigint'},
+    {name:'DEPARTMENT_CODE',FK:true,type:'varchar'},{name:'EMAIL',type:'varchar'},
+    {name:'IS_ACTIVE',type:'bool'}
+  ]},
+  // v3 NEW Tables
+  { name:'T_CASE_PAYMENT', type:'transaction', desc:'ประวัติชำระเงินรายงวด (v3)', cols:[
+    {name:'PAYMENT_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'PAYMENT_DATE',type:'date'},{name:'AMOUNT',type:'decimal'},
+    {name:'PAYMENT_TYPE_CODE',type:'varchar'},{name:'RECEIPT_NO',type:'varchar'},
+    {name:'RECORDED_BY_USER_ID',FK:true,type:'bigint'},{name:'CREATED_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_COURT_PROCEEDING', type:'transaction', desc:'รายละเอียดแต่ละชั้นศาล (v3)', cols:[
+    {name:'PROCEEDING_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'COURT_LEVEL_CODE',type:'varchar'},{name:'COURT_NAME',type:'varchar'},
+    {name:'APPEAL_FILED_DATE',type:'date'},{name:'JUDGEMENT_DATE',type:'date'},
+    {name:'JUDGEMENT_RESULT_CODE',type:'varchar'},{name:'NOTE',type:'text'}
+  ]},
+  { name:'T_NOTIFICATION', type:'transaction', desc:'ประวัติการแจ้งเตือน (v3)', cols:[
+    {name:'NOTIFICATION_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'USER_ID',FK:true,type:'bigint'},{name:'TYPE',type:'varchar'},
+    {name:'MESSAGE',type:'text'},{name:'SENT_DATETIME',type:'datetime'},
+    {name:'IS_READ',type:'bool'},{name:'READ_DATETIME',type:'datetime'}
+  ]},
+  { name:'T_CASE_PARTY', type:'transaction', desc:'คู่ความในคดี หลายคนต่อคดี (v3)', cols:[
+    {name:'PARTY_ID',PK:true,type:'bigint'},{name:'CASE_ID',FK:true,type:'bigint'},
+    {name:'PARTY_ROLE_CODE',type:'varchar'},{name:'PARTY_NAME',type:'varchar'},
+    {name:'ID_CARD_NO',type:'varchar'},{name:'ADDRESS',type:'text'},
+    {name:'PHONE_NO',type:'varchar'}
+  ]},
+  { name:'M_USER_ROLE', type:'master', desc:'Many-to-many User↔Role (v3)', cols:[
+    {name:'USER_ROLE_ID',PK:true,type:'bigint'},{name:'USER_ID',FK:true,type:'bigint'},
+    {name:'ROLE_ID',FK:true,type:'bigint'},{name:'IS_PRIMARY',type:'bool'},
+    {name:'EFFECTIVE_DATE',type:'date'}
+  ]},
+  { name:'M_STATUS_TRANSITION', type:'master', desc:'State machine workflow config (v3)', cols:[
+    {name:'TRANSITION_ID',PK:true,type:'bigint'},{name:'FROM_STATUS_CODE',FK:true,type:'varchar'},
+    {name:'TO_STATUS_CODE',FK:true,type:'varchar'},{name:'REQUIRED_ROLE_CODE',type:'varchar'},
+    {name:'CASE_TYPE_CODE',FK:true,type:'varchar'}
+  ]},
+  { name:'M_ACTION_PERMISSION', type:'master', desc:'RBAC Action Permission (v3)', cols:[
+    {name:'PERMISSION_ID',PK:true,type:'bigint'},{name:'ROLE_ID',FK:true,type:'bigint'},
+    {name:'CASE_TYPE_CODE',FK:true,type:'varchar'},{name:'FROM_STATUS_CODE',type:'varchar'},
+    {name:'ALLOWED_ACTION_CODE',type:'varchar'}
+  ]}
+];
+
+// ─── Relations Data ───────────────────────────────────────────
+const RELATIONS = {
+  'tx-tx': [
+    { from:'T_CASE_REQUEST_DOCUMENT', to:'T_CASE_REQUEST',  via:'REQUEST_ID',               card:'many-to-one' },
+    { from:'T_CASE',                  to:'T_CASE_REQUEST',  via:'CREATED_FROM_REQUEST_ID',  card:'many-to-zero-one' },
+    { from:'T_CASE_STATUS_HISTORY',   to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_ACTIVITY',         to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_DOCUMENT',         to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_HANDOVER',         to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_REVIEW',           to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_ASSET',            to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CONTRACT_DEBT',         to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_LITIGATION_DETAIL',     to:'T_CASE',          via:'CASE_ID',                  card:'many-to-one' },
+    { from:'T_CASE_ACTIVITY',         to:'T_CASE_DOCUMENT', via:'RELATED_DOCUMENT_ID',      card:'many-to-zero-one' }
+  ],
+  'tx-m': [
+    { from:'T_CASE_REQUEST', to:'M_CASE_CATEGORY',     via:'CASE_CATEGORY_CODE',        card:'many-to-one' },
+    { from:'T_CASE_REQUEST', to:'M_CASE_SUB_CATEGORY', via:'CASE_SUB_CATEGORY_CODE',    card:'many-to-zero-one' },
+    { from:'T_CASE_REQUEST', to:'M_DEBT_TYPE',         via:'DEBT_TYPE_CODE',            card:'many-to-zero-one' },
+    { from:'T_CASE_REQUEST', to:'M_REQUEST_STATUS',    via:'REQUEST_STATUS_CODE',       card:'many-to-one' },
+    { from:'T_CASE_REQUEST', to:'M_DEPARTMENT',        via:'SOURCE_DEPARTMENT_CODE',    card:'many-to-zero-one' },
+    { from:'T_CASE_REQUEST', to:'M_USER',              via:'REQUEST_BY_USER_ID',        card:'many-to-zero-one' },
+    { from:'T_CASE', to:'M_CASE_CATEGORY',     via:'CASE_CATEGORY_CODE',               card:'many-to-one' },
+    { from:'T_CASE', to:'M_CASE_TYPE',         via:'CASE_TYPE_CODE',                   card:'many-to-one' },
+    { from:'T_CASE', to:'M_CASE_STATUS',       via:'CURRENT_STATUS_CODE',              card:'many-to-one' },
+    { from:'T_CASE', to:'M_CASE_SUB_STATUS',   via:'CURRENT_SUB_STATUS_CODE',          card:'many-to-zero-one' },
+    { from:'T_CASE', to:'M_DEPARTMENT',        via:'CURRENT_DEPARTMENT_CODE',          card:'many-to-one' },
+    { from:'T_CASE', to:'M_USER',              via:'CURRENT_ASSIGNEE_USER_ID',         card:'many-to-zero-one' },
+    { from:'T_CASE', to:'M_CASE_RESULT',       via:'CASE_RESULT_CODE',                 card:'many-to-zero-one' },
+    { from:'T_CASE_ACTIVITY',   to:'M_ACTIVITY_TYPE', via:'ACTIVITY_TYPE_CODE',        card:'many-to-one' },
+    { from:'T_CASE_ACTIVITY',   to:'M_USER',          via:'ACTION_BY_USER_ID',         card:'many-to-zero-one' },
+    { from:'T_CASE_DOCUMENT',   to:'M_DOCUMENT_CHECKLIST', via:'CHECKLIST_ID',         card:'many-to-zero-one' },
+    { from:'T_CASE_DOCUMENT',   to:'M_DOCUMENT_TYPE', via:'DOCUMENT_TYPE_CODE',        card:'many-to-zero-one' },
+    { from:'T_CASE_DOCUMENT',   to:'M_USER',          via:'UPLOADED_BY_USER_ID',       card:'many-to-zero-one' },
+    { from:'T_CASE_HANDOVER',   to:'M_USER',          via:'FROM/TO_USER_ID',           card:'many-to-zero-one' },
+    { from:'T_CASE_REVIEW',     to:'M_CASE_RESULT',   via:'REVIEW_RESULT_CODE',        card:'many-to-zero-one' },
+    { from:'T_CASE_REVIEW',     to:'M_USER',          via:'REVIEW_BY_USER_ID',         card:'many-to-zero-one' },
+    { from:'T_CASE_ASSET',      to:'M_ASSET_STATUS',  via:'ASSET_STATUS_CODE',         card:'many-to-zero-one' },
+    { from:'T_CASE_REQUEST_DOCUMENT', to:'M_DOCUMENT_TYPE', via:'DOCUMENT_TYPE_CODE',  card:'many-to-zero-one' }
+  ],
+  'm-m': [
+    { from:'M_CASE_SUB_CATEGORY',  to:'M_CASE_CATEGORY',    via:'CASE_CATEGORY_CODE',  card:'many-to-one' },
+    { from:'M_DOCUMENT_TYPE',      to:'M_CASE_CATEGORY',    via:'CASE_CATEGORY_CODE',  card:'many-to-zero-one' },
+    { from:'M_DOCUMENT_CHECKLIST', to:'M_CASE_CATEGORY',    via:'CASE_CATEGORY_CODE',  card:'many-to-one' },
+    { from:'M_DOCUMENT_CHECKLIST', to:'M_DOCUMENT_TYPE',    via:'DOCUMENT_TYPE_CODE',  card:'many-to-zero-one' },
+    { from:'M_CASE_STATUS',        to:'M_CASE_TYPE',        via:'CASE_TYPE_CODE',      card:'many-to-one' },
+    { from:'M_CASE_SUB_STATUS',    to:'M_CASE_STATUS',      via:'STATUS_CODE',         card:'many-to-one' },
+    { from:'M_ACTIVITY_TYPE',      to:'M_CASE_TYPE',        via:'CASE_TYPE_CODE',      card:'many-to-zero-one' },
+    { from:'M_USER',               to:'M_ROLE',             via:'ROLE_ID',             card:'many-to-one' },
+    { from:'M_USER',               to:'M_DEPARTMENT',       via:'DEPARTMENT_CODE',     card:'many-to-zero-one' }
+  ]
+};
+
+// ─── Zoom ─────────────────────────────────────────────────────
+let scale = 1;
+function zoom(delta) {
+  scale = Math.min(Math.max(scale + delta, 0.3), 2.5);
+  document.getElementById('er-inner').style.transform = `scale(${scale})`;
+  document.getElementById('zoom-label').textContent = Math.round(scale*100) + '%';
+}
+function resetZoom() { scale = 1; zoom(0); }
+window.zoom = zoom; window.resetZoom = resetZoom;
+
+// ─── View Switcher ────────────────────────────────────────────
+function switchView(view) {
+  document.querySelectorAll('.view-btn').forEach((b,i) => {
+    b.classList.toggle('active', b.textContent.toLowerCase().includes(view.split('-')[0]));
+  });
+  document.getElementById('view-mermaid').style.display   = view === 'mermaid'    ? '' : 'none';
+  document.getElementById('view-cards').style.display     = view === 'cards'      ? '' : 'none';
+  document.getElementById('view-relations').style.display = view === 'relations'  ? '' : 'none';
+  if (view === 'cards') renderCards('');
+  if (view === 'relations') renderRelations();
+}
+window.switchView = switchView;
+
+// ─── Render Table Cards ───────────────────────────────────────
+function renderCards(q) {
+  const grid = document.getElementById('table-cards-grid');
+  const list = TABLE_DEFS.filter(t =>
+    !q || t.name.toLowerCase().includes(q) ||
+    t.desc.includes(q) ||
+    t.cols.some(c => c.name.toLowerCase().includes(q))
+  );
+  grid.innerHTML = list.map(t => `
+    <div class="er-table-card ${t.type}">
+      <div class="er-table-header">
+        ${t.type === 'transaction' ? '🔷' : '🟢'} ${t.name}
+        <span style="font-size:28px;font-weight:400;opacity:.7;margin-left:auto;">${t.desc}</span>
+      </div>
+      ${t.cols.map(c => `
+        <div class="er-col">
+          <span class="er-col-type">${c.type}</span>
+          <span class="er-col-name">${c.name}</span>
+          ${c.PK ? '<span class="er-col-key key-pk">PK</span>' : ''}
+          ${c.FK ? '<span class="er-col-key key-fk">FK</span>' : ''}
+          ${c.UK ? '<span class="er-col-key" style="background:#ede9fe;color:#5b21b6;">UQ</span>' : ''}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+document.getElementById('table-search').addEventListener('input', function() {
+  renderCards(this.value.toLowerCase());
+});
+
+// ─── Render Relations ─────────────────────────────────────────
+function renderRelations() {
+  const cardStyle = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f0f2f5;font-size:20px;';
+  const cardEnd = 'border:none;';
+
+  ['tx-tx','tx-m','m-m'].forEach(key => {
+    const el = document.getElementById(`rel-${key}`);
+    el.innerHTML = RELATIONS[key].map((r, i) => `
+      <div style="${cardStyle}${i===RELATIONS[key].length-1?cardEnd:''}">
+        <span style="font-weight:700;color:#1a4480;min-width:220px;">${r.from}</span>
+        <span style="color:#9ca3af;font-size:30px;">${r.card === 'many-to-one' ? '}o—||' : '}o—o|'}</span>
+        <span style="font-weight:700;color:#065f46;min-width:200px;">${r.to}</span>
+        <span class="rel-tag">${r.via}</span>
+      </div>`).join('');
+  });
+}
+
+// ─── Render Mermaid ───────────────────────────────────────────
+async function renderMermaid() {
+  const el = document.getElementById('mermaid-diagram');
+  el.textContent = MERMAID_CORE;
+  try {
+    await mermaid.run({ nodes: [el] });
+  } catch(e) {
+    el.innerHTML = `<div class="alert-custom alert-warning">⚠️ Mermaid render ต้องใช้ internet (CDN) กรุณาเปิดผ่าน browser ที่มี network</div>`;
+  }
+}
+
+renderMermaid();
+</script>
+</body>
+</html>

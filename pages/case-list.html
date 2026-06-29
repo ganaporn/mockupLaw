@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รายการคดีทั้งหมด - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+    <div class="page-header d-flex align-center justify-between">
+      <div>
+        <h1 class="page-title">รายการคดีทั้งหมด</h1>
+        <p class="page-subtitle">จัดการและติดตามคดีทุก Stage ในกลุ่มงานคดี</p>
+      </div>
+      <a href="case-request.html" class="btn-custom btn-primary">＋ ยื่นคำขอสร้างคดี</a>
+    </div>
+
+    <!-- Summary Row -->
+    <div class="mb-16" style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;" id="summary-row"></div>
+
+    <!-- Stage Tabs -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-body-custom" style="padding:12px 20px;">
+        <div class="tabs-nav" id="stage-tabs">
+          <button class="tab-btn active" data-stage="">ทั้งหมด</button>
+          <button class="tab-btn" data-stage="CASE_GROUP">🔑 กลุ่มงานคดี</button>
+          <button class="tab-btn" data-stage="PREPARE">📋 เตรียมคดี</button>
+          <button class="tab-btn" data-stage="LITIGATION">⚖️ งานคดี</button>
+          <button class="tab-btn" data-stage="ENFORCEMENT">🏛️ บังคับคดี</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group" style="flex:1;min-width:200px;">
+        <label class="filter-label">ค้นหา</label>
+        <input type="text" id="search-input" class="filter-input" placeholder="เลขคดี / ชื่อ / ลูกหนี้...">
+      </div>
+      <div class="filter-group" style="min-width:210px;">
+        <label class="filter-label">ประเภทงาน</label>
+        <select id="cat-filter" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option value="ACCIDENT">งานอุบัติเหตุ</option>
+          <option value="CONTRACT_MANAGEMENT">งานบริหารสัญญา</option>
+          <option value="LEGAL_CONTRACT">นิติกรรมสัญญา</option>
+          <option value="ORG_DEFENDANT">องค์การถูกฟ้อง</option>
+        </select>
+      </div>
+      <div class="filter-group" style="min-width:280px;">
+        <label class="filter-label">สถานะ</label>
+        <select id="status-filter" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <optgroup label="กลุ่มงานคดี">
+            <option value="CG_RECEIVE">รับเรื่องใหม่</option>
+            <option value="CG_IN_PROGRESS">กำลังพิจารณาจัดสรรงาน</option>
+            <option value="CG_SEND_PREPARE">ส่งเตรียมคดี</option>
+            <option value="CG_SEND_LITIGATION">ส่งงานคดีโดยตรง (ข้ามเตรียมคดี)</option>
+            <option value="CG_SEND_ENFORCEMENT">ส่งบังคับคดีโดยตรง</option>
+          </optgroup>
+          <optgroup label="เตรียมคดี">
+            <option value="RECEIVE_DOC">รับเอกสาร / ส่งหัวหน้างาน</option>
+            <option value="WAIT_ASSIGN">รอรับงาน (นิติกรดำเนินการ)</option>
+            <option value="DEMAND">ทวงถาม</option>
+            <option value="REQUEST_NO_LAWSUIT">เสนอขออนุมัติไม่ฟ้อง</option>
+            <option value="REVIEW">สอบทาน</option>
+            <option value="SEND_TO_LITIGATION">ส่งงานคดี</option>
+            <option value="CLOSED">เสร็จสิ้น (เตรียมคดี)</option>
+          </optgroup>
+          <optgroup label="งานคดี">
+            <option value="CASE_DOC_VERIFY">ตรวจสอบสำนวน</option>
+            <option value="FILE_LAWSUIT">ยื่นฟ้อง</option>
+            <option value="PLEA">ยื่นคำให้การ</option>
+            <option value="CASE_REVIEW">สอบทาน (งานคดี)</option>
+          </optgroup>
+          <optgroup label="บังคับคดี">
+            <option value="ASSET_INVESTIGATION">สืบทรัพย์</option>
+            <option value="ASSET_SEIZURE">ยึดทรัพย์/ขายทอดตลาด</option>
+            <option value="DEBT_COMPROMISE">ประนอมหนี้</option>
+            <option value="BANKRUPTCY_LAWSUIT">ยื่นฟ้องล้มละลาย</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">หน่วยงาน</label>
+        <select id="dept-filter" class="filter-input">
+          <option value="">ทั้งหมด</option>
+          <option>กลุ่มงานคดี</option>
+          <option>เตรียมคดี</option>
+          <option>งานคดี</option>
+          <option>บังคับคดี</option>
+        </select>
+      </div>
+      <button class="btn-custom btn-primary" onclick="applyFilter()">🔍 ค้นหา</button>
+      <button class="btn-custom btn-secondary" onclick="clearFilter()">รีเซ็ต</button>
+    </div>
+
+    <!-- Results Table Card -->
+    <div class="card">
+      <div class="card-header-custom">
+        <span>รายการคดี &nbsp;<span id="result-count" style="font-size:20px;font-weight:400;color:#71767a;"></span></span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="filter-input" style="padding:5px 8px;font-size:20px;" id="sort-select">
+            <option value="last_action">เรียงตาม: อัปเดตล่าสุด</option>
+            <option value="open_date">วันที่เปิดคดี</option>
+            <option value="claim_amount">มูลหนี้</option>
+          </select>
+          <button class="btn-custom btn-secondary btn-sm" onclick="exportCSV()">📤 Export</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table-custom" id="cases-table">
+          <thead><tr>
+            <th><input type="checkbox" id="check-all"></th>
+            <th>เลขคดี</th>
+            <th>เรื่อง / จำเลย</th>
+            <th>ประเภท</th>
+            <th>Stage</th>
+            <th>สถานะปัจจุบัน</th>
+            <th>มูลหนี้ (บาท)</th>
+            <th>ผู้รับผิดชอบ</th>
+            <th>อัปเดตล่าสุด</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="cases-tbody"></tbody>
+        </table>
+      </div>
+      <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #dfe1e2;">
+        <span style="font-size:20px;color:#71767a;">แสดง <span id="page-info"></span></span>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('cases');
+document.getElementById('topbar').innerHTML = buildTopbar('คดี', 'รายการคดีทั้งหมด');
+
+// ─── Summary Boxes ────────────────────────────────────────────
+const summaryItems = [
+  { label:'กลุ่มงานคดี', value: MOCK_DASHBOARD_STATS.by_stage.CASE_GROUP, icon:'🔑', iconClass:'purple', link:'?stage=CASE_GROUP' },
+  { label:'เตรียมคดี', value: MOCK_DASHBOARD_STATS.by_stage.PREPARE, icon:'📋', iconClass:'blue', link:'?stage=PREPARE' },
+  { label:'งานคดี', value: MOCK_DASHBOARD_STATS.by_stage.LITIGATION, icon:'⚖️', iconClass:'orange', link:'?stage=LITIGATION' },
+  { label:'บังคับคดี', value: MOCK_DASHBOARD_STATS.by_stage.ENFORCEMENT, icon:'🏛️', iconClass:'red', link:'?stage=ENFORCEMENT' },
+  { label:'ทั้งหมด', value: MOCK_DASHBOARD_STATS.total_cases, icon:'📁', iconClass:'green', link:'?' }
+];
+document.getElementById('summary-row').innerHTML = summaryItems.map(s => `
+  <a href="${s.link}" style="text-decoration:none;">
+  <div class="kpi-card">
+    <div class="kpi-icon ${s.iconClass}">${s.icon}</div>
+    <div>
+      <div class="kpi-value">${s.value}</div>
+      <div class="kpi-label">${s.label}</div>
+    </div>
+  </div></a>`).join('');
+
+// ─── State ────────────────────────────────────────────────────
+let filtered = [...MOCK_CASES];
+let currentPage = 1;
+const perPage = 10;
+let activeStage = '';
+
+// ─── Stage Tabs ───────────────────────────────────────────────
+document.getElementById('stage-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#stage-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeStage = btn.dataset.stage;
+  applyFilter();
+});
+
+// ─── Filter ───────────────────────────────────────────────────
+function applyFilter() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const cat = document.getElementById('cat-filter').value;
+  const st = document.getElementById('status-filter').value;
+  const dept = document.getElementById('dept-filter').value;
+
+  filtered = MOCK_CASES.filter(c => {
+    if (activeStage && c.case_type !== activeStage) return false;
+    if (cat && c.case_category !== cat) return false;
+    if (st && c.current_status !== st && c.main_status !== st) return false;
+    if (dept && c.dept !== dept) return false;
+    if (q && !(c.case_no + c.case_title + c.defendant + c.plaintiff).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  currentPage = 1;
+  render();
+}
+
+function clearFilter() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('cat-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  document.getElementById('dept-filter').value = '';
+  activeStage = '';
+  document.querySelectorAll('#stage-tabs .tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  filtered = [...MOCK_CASES];
+  currentPage = 1;
+  render();
+}
+
+// ─── Render ───────────────────────────────────────────────────
+function render() {
+  const total = filtered.length;
+  const start = (currentPage-1)*perPage;
+  const page = filtered.slice(start, start+perPage);
+
+  document.getElementById('result-count').textContent = `(พบ ${total} รายการ)`;
+  document.getElementById('page-info').textContent = `${start+1}–${Math.min(start+perPage,total)} จาก ${total} รายการ`;
+
+  const tbody = document.getElementById('cases-tbody');
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">ไม่พบรายการ</div></div></td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = page.map(c => `<tr>
+    <td><input type="checkbox" class="row-check" data-id="${c.case_id}"></td>
+    <td><a href="case-tracking.html?id=${c.case_id}" class="case-no">${c.case_no}</a></td>
+    <td>
+      <div class="case-title">${c.case_title}</div>
+      <div class="case-title-sub">จำเลย: ${c.defendant}</div>
+    </td>
+    <td><span style="font-size:20px;">${getCategoryLabel(c.case_category)}</span></td>
+    <td>${getStageBadge(c.case_type)}</td>
+    <td>${getStatusBadge(c.current_status)}</td>
+    <td style="text-align:right;white-space:nowrap;font-size:22px;">${Number(c.claim_amount).toLocaleString('th-TH',{minimumFractionDigits:0})}</td>
+    <td style="font-size:20px;">${c.assignee}<br><span class="text-muted fs-12">${c.dept}</span></td>
+    <td style="font-size:20px;color:#71767a;">${fmtDate(c.last_action)}</td>
+    <td style="white-space:nowrap;">
+      <a href="case-tracking.html?id=${c.case_id}" class="btn-custom btn-outline btn-xs">🔍 ติดตาม</a>
+    </td>
+  </tr>`).join('');
+
+  // Pagination
+  const pages = Math.ceil(total/perPage);
+  let pag = '';
+  pag += `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})">‹</button>`;
+  for (let i=1; i<=pages; i++) {
+    if (pages <= 7 || Math.abs(i-currentPage) < 2 || i===1 || i===pages) {
+      pag += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    } else if (Math.abs(i-currentPage) === 2) {
+      pag += `<span style="padding:0 4px;color:#9ca3af;">…</span>`;
+    }
+  }
+  pag += `<button class="page-btn" ${currentPage===pages?'disabled':''} onclick="goPage(${currentPage+1})">›</button>`;
+  document.getElementById('pagination').innerHTML = pag;
+
+  // Checkbox all
+  document.getElementById('check-all').onchange = function() {
+    document.querySelectorAll('.row-check').forEach(c => c.checked = this.checked);
+  };
+}
+
+function goPage(p) { currentPage = p; render(); }
+function showAssign(id) { alert(`กำลังพัฒนา: จัดสรรคดี #${id}`); }
+function exportCSV() { alert('กำลังพัฒนา: Export รายการ'); }
+
+// Initial render
+render();
+</script>
+</body>
+</html>

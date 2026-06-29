@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ติดตามงานคดี - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+/* ─── Tab Bottom Nav ───────────────────────────────────── */
+.tab-bottom-nav {
+  display: flex; justify-content: flex-end; padding-top: 16px;
+  border-top: 1px solid #f0f2f5; margin-top: 16px;
+}
+.tab-bottom-nav.space-between { justify-content: space-between; }
+
+/* ─── File Attach ──────────────────────────────────────── */
+.attach-btn-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; background: #f0f4ff; border: 1.5px solid #93c5fd;
+  border-radius: 6px; color: #1e40af; font-size: 20px; cursor: pointer;
+  font-family: inherit; font-weight: 600; transition: all .15s; white-space: nowrap;
+}
+.attach-btn-label:hover { background: #dbeafe; border-color: #60a5fa; }
+
+/* ─── Stage Progress Bar ───────────────────────────────── */
+.stage-track {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 24px; background: #fff;
+  border: 1px solid #dfe1e2; border-radius: 10px;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.stage-item {
+  flex: 1; padding: 14px 12px; text-align: center;
+  font-size: 22px; font-weight: 600; position: relative;
+  border-right: 1px solid #dfe1e2; cursor: default;
+  transition: background .15s;
+}
+.stage-item:last-child { border-right: none; }
+.stage-item .stage-icon { font-size: 28px; display: block; margin-bottom: 4px; }
+.stage-item .stage-label { display: block; font-size: 20px; }
+.stage-item .stage-status { display: block; font-size: 18px; color: #71767a; margin-top: 2px; }
+.stage-item.done { background: #f0fdf4; }
+.stage-item.done .stage-label { color: #15803d; }
+.stage-item.active { background: #eff6ff; }
+.stage-item.active .stage-label { color: #1a4480; }
+.stage-item.pending { background: #f8fafc; }
+.stage-item.pending .stage-label { color: #9ca3af; }
+.stage-done-badge { display:inline-block; background:#dcfce7; color:#15803d;
+  border-radius:20px; padding:2px 8px; font-size:17px; margin-top:3px; font-weight:700; }
+.stage-active-badge { display:inline-block; background:#dbeafe; color:#1a4480;
+  border-radius:20px; padding:2px 8px; font-size:17px; margin-top:3px; font-weight:700; }
+
+/* ─── Status Entry Form ────────────────────────────────── */
+.status-entry-card {
+  background: #eff6ff; border: 2px solid #93c5fd;
+  border-radius: 10px; padding: 20px; margin-bottom: 24px;
+}
+.status-entry-card .entry-title {
+  font-size: 26px; font-weight: 700; color: #1a4480; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px; font-size: 19px; font-weight: 700;
+}
+.role-badge.admin   { background: #dbeafe; color: #1e40af; }
+.role-badge.lawyer  { background: #fef9c3; color: #a16207; }
+.role-badge.chief   { background: #fce7f3; color: #9d174d; }
+.role-badge.case-group { background: #ede9fe; color: #6d28d9; }
+
+/* ─── Timeline ─────────────────────────────────────────── */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: ''; position: absolute; left: 10px; top: 0; bottom: 0;
+  width: 2px; background: #e5e7eb;
+}
+.tl-item {
+  position: relative; margin-bottom: 20px;
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 8px; padding: 14px 16px;
+  transition: box-shadow .15s;
+}
+.tl-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.tl-dot {
+  position: absolute; left: -23px; top: 16px;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 2px #e5e7eb;
+}
+.tl-dot.casegroup  { background: #7c3aed; box-shadow: 0 0 0 2px #ede9fe; }
+.tl-dot.prepare    { background: #2563eb; box-shadow: 0 0 0 2px #dbeafe; }
+.tl-dot.litigation { background: #d97706; box-shadow: 0 0 0 2px #fef3c7; }
+.tl-dot.enforcement{ background: #dc2626; box-shadow: 0 0 0 2px #fee2e2; }
+.tl-item .tl-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+}
+.tl-item .tl-time { font-size: 19px; color: #9ca3af; white-space: nowrap; }
+.tl-item .tl-stage-tag {
+  font-size: 19px; font-weight: 700; padding: 2px 10px;
+  border-radius: 20px; white-space: nowrap;
+}
+.tl-item .tl-body { font-size: 22px; color: #1b1b1b; margin-bottom: 6px; }
+.tl-item .tl-sub  { font-size: 20px; color: #4b5563; }
+.tl-item .tl-files { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tl-file-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: 6px;
+  padding: 3px 10px; font-size: 19px; color: #1e40af;
+}
+.tl-actor { font-size: 20px; color: #374151; font-weight: 600; }
+
+/* ─── Court Info ───────────────────────────────────────── */
+.court-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+@media (max-width: 700px) { .court-info-grid { grid-template-columns: 1fr; } }
+.court-label {
+  font-size: 22px; font-weight: 700; color: #6b7280; margin-bottom: 4px;
+}
+.court-value {
+  font-size: 24px; font-weight: 600; color: #1b1b1b;
+  padding: 8px 12px; background: #f8fafc; border-radius: 6px;
+  border: 1px solid #e5e7eb; min-height: 42px;
+}
+
+/* ─── Sub-status chips ──────────────────────────────────── */
+.sub-status-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sub-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 20px; font-weight: 600;
+  border: 2px solid transparent; cursor: pointer; transition: all .15s;
+  background: #f3f4f6; color: #374151;
+}
+.sub-chip:hover { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.sub-chip.selected { background: #dbeafe; color: #1e40af; border-color: #3b82f6; }
+
+/* ─── Assign lawyer row ─────────────────────────────────── */
+#assign-lawyer-row { display: none; margin-top: 14px; padding-top: 14px;
+  border-top: 1px dashed #93c5fd; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header d-flex align-center justify-between">
+      <div>
+        <h1 class="page-title">ติดตามงานคดี</h1>
+        <p class="page-subtitle" id="page-case-id">คดี-68-0003 · งานบริหารสัญญา</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="current-stage-badge"
+          style="display:inline-flex;align-items:center;gap:6px;padding:6px 18px;
+            background:#ede9fe;border:1.5px solid #a78bfa;border-radius:20px;
+            font-size:22px;font-weight:700;color:#6d28d9;">
+          🔑 กลุ่มงานคดี
+        </div>
+        <a id="btn-back-request" href="case-request.html" class="btn-custom btn-secondary"
+          style="display:none;">← คำขอต้นเรื่อง</a>
+        <a href="case-list.html" class="btn-custom btn-secondary">← รายการคดี</a>
+      </div>
+    </div>
+
+    <!-- ── Stage Progress Bar ────────────────────────────────── -->
+    <div class="stage-track">
+      <div class="stage-item done" id="stage-CASE_GROUP">
+        <span class="stage-icon">🔑</span>
+        <span class="stage-label">กลุ่มงานคดี</span>
+        <span class="stage-done-badge">✓ เสร็จสิ้น</span>
+      </div>
+      <div class="stage-item active" id="stage-PREPARE">
+        <span class="stage-icon">📁</span>
+        <span class="stage-label">เตรียมคดี</span>
+        <span class="stage-active-badge">● กำลังดำเนินการ</span>
+      </div>
+      <div class="stage-item pending" id="stage-LITIGATION">
+        <span class="stage-icon">⚖️</span>
+        <span class="stage-label">งานคดี</span>
+        <span class="stage-status">รอ</span>
+      </div>
+      <div class="stage-item pending" id="stage-ENFORCEMENT">
+        <span class="stage-icon">🏛️</span>
+        <span class="stage-label">บังคับคดี</span>
+        <span class="stage-status">รอ</span>
+      </div>
+    </div>
+
+    <!-- ── 4-Tab Card ─────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-body-custom" style="padding:0 20px;">
+        <div class="tabs-nav" id="form-tabs">
+          <button class="tab-btn active" data-tab="tab-general">📋 ข้อมูลทั่วไป</button>
+          <button class="tab-btn" data-tab="tab-files">📎 แนบไฟล์</button>
+          <button class="tab-btn" data-tab="tab-court">⚖️ ข้อมูลคดีในศาล</button>
+          <button class="tab-btn" data-tab="tab-status">
+            🔄 สถานะการทำงาน
+            <span id="status-count-badge"
+              style="display:inline-block;margin-left:6px;background:#1a4480;color:#fff;
+              border-radius:10px;padding:1px 8px;font-size:18px;font-weight:700;">3</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- Tab 1: ข้อมูลทั่วไป                                    -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <div id="tab-general" class="tab-content active" style="padding:24px;">
+
+        <div class="form-section-title">ข้อมูลพื้นฐานคดี</div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:20px;font-weight:600;color:#71767a;white-space:nowrap;">สถานะคำขอ</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 20px;
+            background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;
+            font-size:22px;font-weight:700;color:#15803d;">
+            ✅ อนุมัติสร้างคดี
+          </span>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">ประเภทคดี</label>
+            <div class="form-control-custom" style="background:#f8fafc;cursor:default;font-size:22px;">
+              📄 งานบริหารสัญญา (รถร่วม)
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">เลขคดี</label>
+            <div class="form-control-custom" style="background:#f8fafc;cursor:default;font-size:22px;">
+              คดี-68-0003
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stage ปัจจุบัน</label>
+            <div class="form-control-custom" style="background:#ede9fe;cursor:default;font-size:22px;font-weight:700;color:#6d28d9;">
+              📁 เตรียมคดี
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ชื่อเรื่อง / หัวข้อคดี</label>
+          <input type="text" class="form-control-custom" id="case-title-field"
+            value="รถร่วมสาย 40 ผิดสัญญาค้างชำระค่าตอบแทน 18 งวด"
+            placeholder="ระบุหัวข้อคดี">
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">หน่วยงานที่รับผิดชอบ</label>
+            <select class="form-control-custom" id="case-unit">
+              <option value="PREPARE" selected>📁 เตรียมคดี</option>
+              <option value="LITIGATION">⚖️ งานคดี</option>
+              <option value="ENFORCEMENT">🏛️ บังคับคดี</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ประเภทหนี้</label>
+            <select class="form-control-custom" id="case-debt-type">
+              <option value="COMPENSATION_DEBT" selected>หนี้ค่าตอบแทน</option>
+              <option value="ACCIDENT_DEBT">หนี้อุบัติเหตุ</option>
+              <option value="CONTRACT_BREACH">หนี้ผิดสัญญา</option>
+              <option value="EX_EMPLOYEE_RECOURSE">หนี้ไล่เบี้ยอดีตพนักงาน</option>
+              <option value="CONTRACTOR_RECOURSE">หนี้ไล่เบี้ยคู่สัญญา</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่เปิดคดี</label>
+            <input type="date" class="form-control-custom" id="case-open-date" value="2026-05-10">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">จำเลย / ลูกหนี้</label>
+            <input type="text" class="form-control-custom" id="case-defendant"
+              value="นายสมศักดิ์ รักษ์ดี" placeholder="ชื่อจำเลย / คู่กรณี">
+          </div>
+          <div class="form-group">
+            <label class="form-label">มูลหนี้รวม (บาท)</label>
+            <input type="number" class="form-control-custom" id="case-amount"
+              value="245000" step="0.01" min="0" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">รายละเอียดสรุปเบื้องต้น</label>
+          <textarea class="form-control-custom" rows="3" id="case-summary"
+            placeholder="สรุปข้อเท็จจริงและประเด็น">รถร่วมสาย 40 ทะเบียน 14-7672 กรุงเทพฯ ค้างชำระค่าตอบแทน 18 งวด ตั้งแต่เดือน ม.ค. 68 มูลค่ารวม 245,000 บาท บอกเลิกสัญญาแล้วเมื่อ 25 ต.ค. 67</textarea>
+        </div>
+
+        <div class="tab-bottom-nav">
+          <button class="btn-custom btn-primary" onclick="switchTab('tab-files')">
+            ถัดไป: แนบไฟล์ →
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- Tab 2: แนบไฟล์                                        -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <div id="tab-files" class="tab-content" style="padding:24px;display:none;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:700;font-size:24px;color:#1a4480;">เอกสารประกอบคดี</div>
+            <div style="font-size:20px;color:#71767a;margin-top:3px;">
+              อัปโหลดเอกสารทั้งหมดที่เกี่ยวข้องกับคดีนี้
+            </div>
+          </div>
+          <button class="btn-custom btn-outline btn-sm" onclick="addFileRow()">＋ เพิ่มเอกสาร</button>
+        </div>
+
+        <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;color:#71767a;
+                  border-bottom:2px solid #dfe1e2;width:44px;text-align:center;">#</th>
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;color:#71767a;
+                  border-bottom:2px solid #dfe1e2;">ชื่อไฟล์ / เอกสาร</th>
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;color:#71767a;
+                  border-bottom:2px solid #dfe1e2;width:180px;">แนบ</th>
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;color:#71767a;
+                  border-bottom:2px solid #dfe1e2;width:120px;">วันที่</th>
+                <th style="padding:10px 14px;border-bottom:2px solid #dfe1e2;width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="file-tbody">
+              <!-- pre-filled mock rows -->
+              <tr class="file-row" style="border-bottom:1px solid #f0f2f5;">
+                <td style="padding:10px 14px;text-align:center;color:#9ca3af;font-size:20px;">1</td>
+                <td style="padding:10px 14px;">
+                  <input type="text" class="form-control-custom" value="หนังสือสัญญานำรถตู้ปรับอากาศเข้าร่วมเดินรถ"
+                    style="font-size:20px;padding:6px 10px;">
+                </td>
+                <td style="padding:10px 14px;">
+                  <label class="attach-btn-label">
+                    <span>📎</span><span>เลือกไฟล์</span>
+                    <input type="file" style="display:none;" accept=".pdf,.doc,.docx,.jpg,.png">
+                  </label>
+                </td>
+                <td style="padding:10px 14px;">
+                  <input type="date" class="form-control-custom" value="2026-05-10"
+                    style="font-size:19px;padding:6px 8px;">
+                </td>
+                <td style="padding:10px 14px;text-align:center;">
+                  <button type="button" class="btn-custom btn-danger btn-xs"
+                    onclick="this.closest('tr').remove();reindexFileRows()"
+                    style="padding:4px 10px;font-size:19px;">✕</button>
+                </td>
+              </tr>
+              <tr class="file-row" style="border-bottom:1px solid #f0f2f5;">
+                <td style="padding:10px 14px;text-align:center;color:#9ca3af;font-size:20px;">2</td>
+                <td style="padding:10px 14px;">
+                  <input type="text" class="form-control-custom" value="หนังสือบอกเลิกสัญญา"
+                    style="font-size:20px;padding:6px 10px;">
+                </td>
+                <td style="padding:10px 14px;">
+                  <label class="attach-btn-label">
+                    <span>📎</span><span>เลือกไฟล์</span>
+                    <input type="file" style="display:none;" accept=".pdf,.doc,.docx,.jpg,.png">
+                  </label>
+                </td>
+                <td style="padding:10px 14px;">
+                  <input type="date" class="form-control-custom" value="2026-05-15"
+                    style="font-size:19px;padding:6px 8px;">
+                </td>
+                <td style="padding:10px 14px;text-align:center;">
+                  <button type="button" class="btn-custom btn-danger btn-xs"
+                    onclick="this.closest('tr').remove();reindexFileRows()"
+                    style="padding:4px 10px;font-size:19px;">✕</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tab-bottom-nav space-between" style="margin-top:16px;">
+          <button class="btn-custom btn-secondary" onclick="switchTab('tab-general')">
+            ← ย้อนกลับ: ข้อมูลทั่วไป
+          </button>
+          <button class="btn-custom btn-primary" onclick="switchTab('tab-court')">
+            ถัดไป: ข้อมูลคดีในศาล →
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- Tab 3: ข้อมูลคดีในศาล                                  -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <div id="tab-court" class="tab-content" style="padding:24px;display:none;">
+
+        <div class="form-section-title">⚖️ ข้อมูลคดีในศาล</div>
+
+        <div class="form-group">
+          <label class="form-label">เรื่อง</label>
+          <input type="text" class="form-control-custom" id="court-subject"
+            placeholder="เช่น คดีพิพาทเกี่ยวกับสัญญาทางปกครอง"
+            value="คดีพิพาทเกี่ยวกับสัญญาทางปกครอง">
+        </div>
+
+        <div class="court-info-grid">
+          <div class="form-group">
+            <label class="form-label">คดีหมายเลขดำที่</label>
+            <input type="text" class="form-control-custom" id="court-black-no"
+              placeholder="เช่น อ.123/2568">
+          </div>
+          <div class="form-group">
+            <label class="form-label">คดีหมายเลขแดงที่</label>
+            <input type="text" class="form-control-custom" id="court-red-no"
+              placeholder="กรอกเมื่อได้รับคำพิพากษา">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ศาล</label>
+          <input type="text" class="form-control-custom" id="court-name"
+            placeholder="เช่น ศาลปกครองกลาง / ศาลแพ่ง / ศาลแพ่งกรุงเทพใต้">
+        </div>
+
+        <div class="court-info-grid">
+          <div class="form-group">
+            <label class="form-label">ผู้ฟ้องคดี</label>
+            <input type="text" class="form-control-custom" id="court-plaintiff"
+              placeholder="ชื่อ-นามสกุล หรือองค์กร"
+              value="องค์การขนส่งมวลชนกรุงเทพ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ผู้ถูกฟ้องคดี</label>
+            <input type="text" class="form-control-custom" id="court-defendant"
+              placeholder="ชื่อ-นามสกุล หรือองค์กร"
+              value="นายสมศักดิ์ รักษ์ดี">
+          </div>
+        </div>
+
+        <div class="court-info-grid">
+          <div class="form-group">
+            <label class="form-label">วันที่ยื่นฟ้อง</label>
+            <input type="date" class="form-control-custom" id="court-file-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันนัดพิจารณาครั้งแรก</label>
+            <input type="date" class="form-control-custom" id="court-first-hearing">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ทุนทรัพย์ที่ฟ้อง (บาท)</label>
+          <input type="number" class="form-control-custom" id="court-claim-amount"
+            placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">หมายเหตุ / ข้อมูลเพิ่มเติม</label>
+          <textarea class="form-control-custom" rows="3" id="court-note"
+            placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับการดำเนินคดีในศาล"></textarea>
+        </div>
+
+        <div class="tab-bottom-nav space-between">
+          <button class="btn-custom btn-secondary" onclick="switchTab('tab-files')">
+            ← ย้อนกลับ: แนบไฟล์
+          </button>
+          <button class="btn-custom btn-primary" onclick="switchTab('tab-status')">
+            ถัดไป: สถานะการทำงาน →
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- Tab 4: สถานะการทำงาน                                   -->
+      <!-- ══════════════════════════════════════════════════════ -->
+      <div id="tab-status" class="tab-content" style="padding:24px;display:none;">
+
+        <!-- ── สถานะคดีปัจจุบัน ──────────────────────────────── -->
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+          padding:12px 16px;background:#f8fafc;border:1px solid #dfe1e2;
+          border-radius:8px;margin-bottom:16px;">
+          <span style="font-size:20px;font-weight:600;color:#71767a;white-space:nowrap;">สถานะคดีปัจจุบัน</span>
+          <select class="form-control-custom" id="case-status-select" onchange="onCaseStatusChange()"
+            style="font-size:22px;padding:6px 12px;max-width:340px;">
+            <option value="PENDING">รอดำเนินการ</option>
+            <option value="DOC_RECEIVED">รับเอกสาร</option>
+            <option value="IN_PROGRESS" selected>นิติกรดำเนินการ</option>
+            <option value="REVIEW">สอบทาน</option>
+            <option value="SEND_LITIGATION">ส่งงานคดี</option>
+            <option value="SEND_ENFORCEMENT">ส่งงานบังคับคดี</option>
+            <option value="SEND_PREPARE">ส่งเรื่องคืนงานเตรียมคดี</option>
+            <option value="CLOSED">ปิดเรื่อง</option>
+            <option value="DONE">เสร็จสิ้น</option>
+          </select>
+        </div>
+
+        <!-- ── Entry Form ────────────────────────────────────── -->
+        <div class="status-entry-card">
+          <div class="entry-title">
+            ✍️ บันทึกสถานะ
+            <span class="role-badge admin" id="current-role-badge">👤 ธุรการ · เตรียมคดี</span>
+          </div>
+
+          <!-- Role selector (mockup) -->
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label" style="font-size:20px;">สวมบทบาท (Mockup)</label>
+            <select class="form-control-custom" id="role-select" onchange="onRoleChange()"
+              style="font-size:22px;max-width:400px;">
+              <option value="admin_prepare">ธุรการ · เตรียมคดี</option>
+              <option value="lawyer_prepare">นิติกร · เตรียมคดี</option>
+              <option value="chief_prepare">หัวหน้างาน · เตรียมคดี</option>
+              <option value="admin_litigation">ธุรการ · งานคดี</option>
+              <option value="lawyer_litigation">นิติกร · งานคดี</option>
+              <option value="chief_litigation">หัวหน้างาน · งานคดี</option>
+              <option value="admin_enforcement">ธุรการ · บังคับคดี</option>
+              <option value="lawyer_enforcement">นิติกร · บังคับคดี</option>
+              <option value="chief_enforcement">หัวหน้างาน · บังคับคดี</option>
+              <option value="case_group">กลุ่มงานคดี</option>
+            </select>
+          </div>
+
+          <!-- Status selector (changes per role) -->
+          <div class="grid-2" style="gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" style="font-size:20px;" id="entry-status-label">สถานะที่บันทึก <span class="req">*</span></label>
+              <select class="form-control-custom" id="entry-status" onchange="onEntryStatusChange()"
+                style="font-size:22px;">
+                <!-- populated by onRoleChange() -->
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;" id="sub-status-group">
+              <label class="form-label" style="font-size:20px;">สถานะย่อย / Action</label>
+              <select class="form-control-custom" id="entry-sub-status" style="font-size:22px;">
+                <option value="">— ไม่ระบุ —</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Assign lawyer (shown when status = DOC_RECEIVED or WARRANT_RECEIVED) -->
+          <div id="assign-lawyer-row">
+            <div class="form-group" style="max-width:400px;margin-bottom:0;">
+              <label class="form-label" style="font-size:20px;">เลือกนิติกร <span class="req">*</span></label>
+              <select class="form-control-custom" id="assign-lawyer" style="font-size:22px;">
+                <option value="">— เลือกนิติกร —</option>
+                <option value="L001">นายสมชาย ใจดี</option>
+                <option value="L002">นางสาววิภา มั่นคง</option>
+                <option value="L003">นายอนุชา ศรีสวัสดิ์</option>
+                <option value="L004">นางสาวพรทิพย์ รุ่งเรือง</option>
+              </select>
+            </div>
+            <div style="margin-top:8px;font-size:19px;color:#1a4480;">
+              ℹ️ หลังบันทึก ระบบจะเปลี่ยนสถานะเป็น <strong>นิติกรดำเนินการ</strong> และส่ง Notification ให้นิติกรที่เลือก
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="form-group" style="margin-top:14px;margin-bottom:10px;">
+            <label class="form-label" style="font-size:20px;">รายละเอียด / หมายเหตุ</label>
+            <textarea class="form-control-custom" id="entry-note" rows="2"
+              placeholder="บันทึกรายละเอียดการดำเนินการ..."></textarea>
+          </div>
+
+          <!-- File attach for this entry -->
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label class="attach-btn-label" style="font-size:20px;">
+              📎 แนบไฟล์ประกอบ
+              <input type="file" id="entry-file-input" style="display:none;"
+                accept=".pdf,.doc,.docx,.jpg,.png" multiple>
+            </label>
+            <span id="entry-file-names" style="font-size:20px;color:#374151;"></span>
+          </div>
+
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="btn-custom btn-primary" onclick="saveStatusEntry()"
+              style="font-size:22px;padding:10px 28px;">
+              💾 บันทึกสถานะ
+            </button>
+            <button class="btn-custom btn-secondary" onclick="clearEntryForm()"
+              style="font-size:22px;">
+              ล้างข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Timeline History ──────────────────────────────── -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-size:26px;font-weight:700;color:#1a4480;">📅 ประวัติการดำเนินงาน</div>
+          <div style="font-size:20px;color:#71767a;" id="timeline-count">3 รายการ</div>
+        </div>
+
+        <div class="timeline" id="timeline-list">
+          <!-- Mock entry 1 -->
+          <div class="tl-item">
+            <div class="tl-dot casegroup"></div>
+            <div class="tl-header">
+              <div>
+                <span class="tl-stage-tag" style="background:#ede9fe;color:#6d28d9;">🔑 กลุ่มงานคดี</span>
+                <span class="role-badge case-group" style="margin-left:6px;font-size:18px;">กลุ่มงานคดี</span>
+              </div>
+              <span class="tl-time">28 พ.ค. 2568 · 09:15</span>
+            </div>
+            <div class="tl-actor" style="margin-bottom:4px;">👤 ธุรการกลุ่มงานคดี</div>
+            <div class="tl-body">รับเรื่องและ Assign งาน → <strong>เตรียมคดี</strong></div>
+            <div class="tl-sub">ตรวจสอบเอกสารเบื้องต้นครบถ้วน พร้อมส่งทีมเตรียมคดีดำเนินการ</div>
+          </div>
+
+          <!-- Mock entry 2 -->
+          <div class="tl-item">
+            <div class="tl-dot prepare"></div>
+            <div class="tl-header">
+              <div>
+                <span class="tl-stage-tag" style="background:#dbeafe;color:#1e40af;">📁 เตรียมคดี</span>
+                <span class="role-badge admin" style="margin-left:6px;font-size:18px;">ธุรการ</span>
+              </div>
+              <span class="tl-time">2 มิ.ย. 2568 · 10:30</span>
+            </div>
+            <div class="tl-actor" style="margin-bottom:4px;">👤 ธุรการเตรียมคดี · นางสาวสมหมาย ใจงาม</div>
+            <div class="tl-body">รับเอกสาร → มอบหมายนิติกร: <strong>นายสมชาย ใจดี</strong></div>
+            <div class="tl-sub">ตรวจสอบ Checklist 19 รายการ ครบถ้วน พร้อมดำเนินการ</div>
+            <div class="tl-files">
+              <span class="tl-file-chip">📄 checklist_verified.pdf</span>
+            </div>
+          </div>
+
+          <!-- Mock entry 3 -->
+          <div class="tl-item">
+            <div class="tl-dot prepare"></div>
+            <div class="tl-header">
+              <div>
+                <span class="tl-stage-tag" style="background:#dbeafe;color:#1e40af;">📁 เตรียมคดี</span>
+                <span class="role-badge lawyer" style="margin-left:6px;font-size:18px;">นิติกร</span>
+              </div>
+              <span class="tl-time">10 มิ.ย. 2568 · 14:20</span>
+            </div>
+            <div class="tl-actor" style="margin-bottom:4px;">👤 นิติกร · นายสมชาย ใจดี</div>
+            <div class="tl-body">นิติกรดำเนินการ — <strong>ทวงถาม</strong></div>
+            <div class="tl-sub">ส่งหนังสือทวงถามครั้งที่ 1 ทางไปรษณีย์ลงทะเบียน</div>
+            <div class="tl-files">
+              <span class="tl-file-chip">📄 หนังสือทวงถาม_001.pdf</span>
+              <span class="tl-file-chip">📄 ใบรับไปรษณีย์.pdf</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-bottom-nav space-between">
+          <button class="btn-custom btn-secondary" onclick="switchTab('tab-court')">
+            ← ย้อนกลับ: ข้อมูลคดีในศาล
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+
+    <!-- ── Bottom Action Bar ──────────────────────────────────── -->
+    <div class="card" style="padding:16px 20px;margin-top:16px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:20px;color:#71767a;" id="save-hint"></span>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <a href="case-list.html" class="btn-custom btn-secondary">ยกเลิก</a>
+          <button class="btn-custom btn-secondary" onclick="saveDraft()">💾 บันทึกร่าง</button>
+          <button class="btn-custom btn-success" onclick="saveCase()" style="font-size:22px;">
+            ✅ บันทึกข้อมูลคดี
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('tracking');
+
+// ─── Init from URL params ─────────────────────────────────────
+(function initFromURL() {
+  const params   = new URLSearchParams(window.location.search);
+  const caseNo   = params.get('case_no');
+  const reqId    = params.get('req');
+  const caseId   = params.get('id');
+
+  // Update title from URL
+  if (caseNo) {
+    document.getElementById('page-case-id').textContent = caseNo;
+    document.getElementById('save-hint').textContent = 'เลขคดี: ' + caseNo;
+    document.getElementById('case-title-field').value =
+      caseNo + ' — กรุณากรอกข้อมูลเพิ่มเติม';
+  }
+  // Show back-to-request button if came from request form
+  if (reqId) {
+    const btn = document.getElementById('btn-back-request');
+    btn.href = `request-form.html?req=${reqId}`;
+    btn.style.display = '';
+  }
+
+  document.getElementById('topbar').innerHTML = buildTopbar('ติดตามคดี', caseNo || 'คดี-68-0003');
+})();
+
+// ─── Tab Switching ────────────────────────────────────────────
+document.querySelectorAll('#form-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(tabId) {
+  document.querySelectorAll('#form-tabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.remove('active');
+    c.style.display = 'none';
+  });
+  const target = document.getElementById(tabId);
+  target.classList.add('active');
+  target.style.display = 'block';
+}
+
+// ─── Role → Status Mapping ────────────────────────────────────
+const ROLE_STATUS_MAP = {
+  // ── เตรียมคดี ──────────────────────────────────────────────
+  admin_prepare: {
+    label: 'ธุรการ · เตรียมคดี', badge: 'admin',
+    statusLabel: 'สถานะที่บันทึก',
+    statuses: [
+      { value: 'DOC_RECEIVED',    label: 'รับเอกสาร' },
+      { value: 'SEND_LITIGATION', label: 'ส่งงานคดี' },
+      { value: 'DONE',            label: 'เสร็จสิ้น' },
+    ],
+    subStatuses: {}
+  },
+  lawyer_prepare: {
+    label: 'นิติกร · เตรียมคดี', badge: 'lawyer',
+    statusLabel: 'บันทึกการดำเนินการ',
+    statuses: [
+      { value: 'SUB_DEMAND',    label: 'ทวงถาม' },
+      { value: 'SUB_NO_SUE',   label: 'ขออนุมัติไม่ฟ้อง' },
+      { value: 'SUB_WRITE_OFF',label: 'จำหน่ายหนี้' },
+      { value: 'REVIEW',        label: '✅ ส่งสอบทาน (หัวหน้างาน)' },
+    ],
+    subStatuses: {}
+  },
+  chief_prepare: {
+    label: 'หัวหน้างาน · เตรียมคดี', badge: 'chief',
+    statusLabel: 'ผลการสอบทาน',
+    statuses: [
+      { value: 'SEND_FILE',    label: 'ส่งฟ้องคดี' },
+      { value: 'CLOSED',       label: 'ปิดเรื่อง' },
+      { value: 'RETURN_EDIT',  label: 'ตีกลับเพื่อแก้ไข' },
+    ],
+    subStatuses: {
+      CLOSED: [
+        { value: 'CLOSE_RECEIVE_MONEY', label: 'รับเงิน' },
+        { value: 'CLOSE_WRITE_OFF',     label: 'จำหน่ายหนี้' },
+      ]
+    }
+  },
+
+  // ── งานคดี ─────────────────────────────────────────────────
+  admin_litigation: {
+    label: 'ธุรการ · งานคดี', badge: 'admin',
+    statusLabel: 'สถานะที่บันทึก',
+    statuses: [
+      { value: 'DOC_RECEIVED',     label: 'รับเอกสาร' },
+      { value: 'WARRANT_RECEIVED', label: 'รับหมาย' },
+      { value: 'SEND_ENFORCEMENT', label: 'ส่งงานบังคับคดี' },
+      { value: 'SEND_PREPARE',     label: 'ส่งเรื่องคืนงานเตรียมคดี' },
+      { value: 'DONE',             label: 'เสร็จสิ้น' },
+    ],
+    subStatuses: {}
+  },
+  lawyer_litigation: {
+    label: 'นิติกร · งานคดี', badge: 'lawyer',
+    statusLabel: 'บันทึกการดำเนินการ',
+    statuses: [
+      { value: 'SUB_CHECK_FILE', label: 'ตรวจสอบสำนวน' },
+      { value: 'SUB_FILE_SUIT',  label: 'ยื่นฟ้อง' },
+      { value: 'SUB_PLEA',       label: 'ยื่นคำให้การ' },
+      { value: 'SEND_PREPARE',   label: 'ส่งเรื่องคืนงานเตรียมคดี' },
+      { value: 'DONE',           label: 'เสร็จสิ้น' },
+      { value: 'REVIEW',         label: '✅ ส่งสอบทาน (หัวหน้างาน)' },
+    ],
+    subStatuses: {}
+  },
+  chief_litigation: {
+    label: 'หัวหน้างาน · งานคดี', badge: 'chief',
+    statusLabel: 'ผลการสอบทาน',
+    statuses: [
+      { value: 'CLOSED',           label: 'ปิดเรื่อง' },
+      { value: 'SEND_ENFORCEMENT', label: 'ส่งยึดทรัพย์ / บังคับคดี' },
+      { value: 'DISMISSED',        label: 'ยกฟ้อง' },
+      { value: 'NOTIFY_DISTRICT',  label: 'แจ้งเขตการเดินรถดำเนินการ' },
+      { value: 'TRACK_DEBT',       label: 'ติดตามหนี้รถร่วม' },
+    ],
+    subStatuses: {}
+  },
+
+  // ── บังคับคดี ───────────────────────────────────────────────
+  admin_enforcement: {
+    label: 'ธุรการ · บังคับคดี', badge: 'admin',
+    statusLabel: 'สถานะที่บันทึก',
+    statuses: [
+      { value: 'DOC_RECEIVED',    label: 'รับเอกสาร' },
+      { value: 'SEND_LITIGATION', label: 'ส่งเรื่องกลับงานคดี' },
+      { value: 'DONE',            label: 'เสร็จสิ้น' },
+    ],
+    subStatuses: {}
+  },
+  lawyer_enforcement: {
+    label: 'นิติกร · บังคับคดี', badge: 'lawyer',
+    statusLabel: 'บันทึกการดำเนินการ',
+    statuses: [
+      { value: 'SUB_CHECK_DOC',   label: 'ตรวจสอบเอกสาร' },
+      { value: 'SUB_TRACE_ASSET', label: 'สืบทรัพย์' },
+      { value: 'SUB_SEIZE',       label: 'ยึดทรัพย์ / ขายทอดตลาด' },
+      { value: 'SUB_SETTLE',      label: 'ประนอมหนี้' },
+      { value: 'SUB_BANKRUPT',    label: 'ยื่นฟ้องลูกหนี้เป็นคดีล้มละลาย' },
+      { value: 'SUB_CLAIM',       label: 'ยื่นคำขอรับชำระหนี้' },
+      { value: 'SUB_SUSPEND',     label: 'เสนอขออนุมัติงดบังคับคดี (ครบอายุความ 10 ปี)' },
+      { value: 'DONE',            label: 'เสร็จสิ้น' },
+      { value: 'REVIEW',          label: '✅ ส่งสอบทาน (หัวหน้างาน)' },
+    ],
+    subStatuses: {
+      DONE: [
+        { value: 'CLOSE_SUSPEND',      label: 'อนุมัติงดบังคับคดีเพื่อยุติเรื่อง' },
+        { value: 'CLOSE_PAID_PARTIAL', label: 'รับชำระหนี้' },
+      ]
+    }
+  },
+  chief_enforcement: {
+    label: 'หัวหน้างาน · บังคับคดี', badge: 'chief',
+    statusLabel: 'ผลการสอบทาน',
+    statuses: [
+      { value: 'CLOSED', label: 'ปิดเรื่อง' },
+    ],
+    subStatuses: {
+      CLOSED: [
+        { value: 'CLOSE_PAID_FULL',    label: 'ชำระหนี้ครบ' },
+        { value: 'CLOSE_WRITE_OFF',    label: 'จำหน่ายหนี้' },
+        { value: 'CLOSE_SUSPEND',      label: 'อนุมัติงดบังคับคดีเพื่อยุติเรื่อง' },
+        { value: 'CLOSE_PAID_PARTIAL', label: 'รับชำระหนี้' },
+      ]
+    }
+  },
+
+  // ── กลุ่มงานคดี ────────────────────────────────────────────
+  case_group: {
+    label: 'กลุ่มงานคดี', badge: 'case-group',
+    statusLabel: 'สถานะที่บันทึก',
+    statuses: [
+      { value: 'PENDING',          label: 'รอดำเนินการ' },
+      { value: 'SEND_PREPARE',     label: 'ส่งเรื่องคืนงานเตรียมคดี' },
+      { value: 'SEND_LITIGATION',  label: 'ส่งงานคดี' },
+      { value: 'SEND_ENFORCEMENT', label: 'ส่งงานบังคับคดี' },
+      { value: 'CLOSED',           label: 'ปิดคดี' },
+    ],
+    subStatuses: {}
+  }
+};
+
+const ASSIGN_TRIGGER = new Set(['DOC_RECEIVED', 'WARRANT_RECEIVED']);
+
+function onRoleChange() {
+  const role = document.getElementById('role-select').value;
+  const cfg = ROLE_STATUS_MAP[role];
+  if (!cfg) return;
+
+  // update badge
+  const badge = document.getElementById('current-role-badge');
+  badge.className = `role-badge ${cfg.badge}`;
+  badge.textContent = '👤 ' + cfg.label;
+
+  // update status label
+  const lbl = document.getElementById('entry-status-label');
+  if (lbl) lbl.textContent = (cfg.statusLabel || 'สถานะที่บันทึก') + ' *';
+
+  // populate statuses
+  const sel = document.getElementById('entry-status');
+  sel.innerHTML = cfg.statuses.map(s =>
+    `<option value="${s.value}">${s.label}</option>`
+  ).join('');
+
+  onEntryStatusChange();
+}
+
+function onEntryStatusChange() {
+  const role   = document.getElementById('role-select').value;
+  const status = document.getElementById('entry-status').value;
+  const cfg    = ROLE_STATUS_MAP[role];
+
+  // show/hide assign lawyer row
+  document.getElementById('assign-lawyer-row').style.display =
+    ASSIGN_TRIGGER.has(status) ? 'block' : 'none';
+
+  // populate sub-status based on selected status only
+  const subSel   = document.getElementById('entry-sub-status');
+  const subGroup = document.getElementById('sub-status-group');
+  const subs     = (cfg && cfg.subStatuses && cfg.subStatuses[status]) || [];
+
+  if (subs.length) {
+    subSel.innerHTML = '<option value="">— ไม่ระบุ —</option>' +
+      subs.map(s => `<option value="${s.value}">${s.label}</option>`).join('');
+    subGroup.style.display = '';
+  } else {
+    subSel.innerHTML = '<option value="">— ไม่มีสถานะย่อย —</option>';
+    subGroup.style.display = 'none';
+  }
+}
+
+// ─── File Attach for entry ────────────────────────────────────
+document.getElementById('entry-file-input').addEventListener('change', function() {
+  const names = Array.from(this.files).map(f => f.name).join(', ');
+  document.getElementById('entry-file-names').textContent = names || '';
+});
+
+// ─── Save Status Entry → add to Timeline ─────────────────────
+function saveStatusEntry() {
+  const role     = document.getElementById('role-select').value;
+  const cfg      = ROLE_STATUS_MAP[role];
+  const statusEl = document.getElementById('entry-status');
+  const subEl    = document.getElementById('entry-sub-status');
+  const noteEl   = document.getElementById('entry-note');
+  const fileEl   = document.getElementById('entry-file-input');
+
+  const statusLabel = statusEl.options[statusEl.selectedIndex]?.text || '';
+  const subLabel    = subEl.value ? subEl.options[subEl.selectedIndex]?.text : '';
+  const note        = noteEl.value.trim();
+  const files       = Array.from(fileEl.files).map(f => f.name);
+
+  const stageDotClass = {
+    admin_prepare: 'prepare', lawyer_prepare: 'prepare', chief_prepare: 'prepare',
+    admin_litigation: 'litigation', lawyer_litigation: 'litigation', chief_litigation: 'litigation',
+    admin_enforcement: 'enforcement', lawyer_enforcement: 'enforcement', chief_enforcement: 'enforcement',
+    case_group: 'casegroup'
+  }[role] || 'prepare';
+
+  const stageTagStyle = {
+    prepare:     'background:#dbeafe;color:#1e40af',
+    litigation:  'background:#fef3c7;color:#b45309',
+    enforcement: 'background:#fee2e2;color:#b91c1c',
+    casegroup:   'background:#ede9fe;color:#6d28d9',
+  };
+
+  const stageLabel = {
+    prepare: '📁 เตรียมคดี', litigation: '⚖️ งานคดี',
+    enforcement: '🏛️ บังคับคดี', casegroup: '🔑 กลุ่มงานคดี'
+  }[stageDotClass];
+
+  const now = new Date();
+  const timeStr = now.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }) +
+                  ' · ' + now.toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
+
+  const bodyText = subLabel
+    ? `${statusLabel} — <strong>${subLabel}</strong>`
+    : statusLabel;
+
+  const filesHtml = files.length
+    ? `<div class="tl-files">${files.map(f => `<span class="tl-file-chip">📄 ${f}</span>`).join('')}</div>`
+    : '';
+
+  const html = `
+    <div class="tl-item" style="animation:fadeInDown .25s ease;">
+      <div class="tl-dot ${stageDotClass}"></div>
+      <div class="tl-header">
+        <div>
+          <span class="tl-stage-tag" style="${stageTagStyle[stageDotClass]};">${stageLabel}</span>
+          <span class="role-badge ${cfg.badge}" style="margin-left:6px;font-size:18px;">${cfg.label}</span>
+        </div>
+        <span class="tl-time">${timeStr}</span>
+      </div>
+      <div class="tl-actor" style="margin-bottom:4px;">👤 ${cfg.label}</div>
+      <div class="tl-body">${bodyText}</div>
+      ${note ? `<div class="tl-sub">${note}</div>` : ''}
+      ${filesHtml}
+    </div>`;
+
+  const list = document.getElementById('timeline-list');
+  list.insertAdjacentHTML('afterbegin', html);
+
+  // update count
+  const count = list.querySelectorAll('.tl-item').length;
+  document.getElementById('timeline-count').textContent = count + ' รายการ';
+  document.getElementById('status-count-badge').textContent = count;
+
+  clearEntryForm();
+  alert('✅ บันทึกสถานะสำเร็จ');
+}
+
+function clearEntryForm() {
+  document.getElementById('entry-note').value = '';
+  document.getElementById('entry-file-input').value = '';
+  document.getElementById('entry-file-names').textContent = '';
+  document.getElementById('entry-sub-status').selectedIndex = 0;
+}
+
+// ─── File rows (Tab 2) ────────────────────────────────────────
+function addFileRow() {
+  const tbody = document.getElementById('file-tbody');
+  const idx = tbody.querySelectorAll('tr').length + 1;
+  tbody.insertAdjacentHTML('beforeend', `
+    <tr class="file-row" style="border-bottom:1px solid #f0f2f5;">
+      <td style="padding:10px 14px;text-align:center;color:#9ca3af;font-size:20px;">${idx}</td>
+      <td style="padding:10px 14px;">
+        <input type="text" class="form-control-custom" placeholder="ชื่อเอกสาร *"
+          style="font-size:20px;padding:6px 10px;">
+      </td>
+      <td style="padding:10px 14px;">
+        <label class="attach-btn-label">
+          <span>📎</span><span>เลือกไฟล์</span>
+          <input type="file" style="display:none;" accept=".pdf,.doc,.docx,.jpg,.png">
+        </label>
+      </td>
+      <td style="padding:10px 14px;">
+        <input type="date" class="form-control-custom" style="font-size:19px;padding:6px 8px;">
+      </td>
+      <td style="padding:10px 14px;text-align:center;">
+        <button type="button" class="btn-custom btn-danger btn-xs"
+          onclick="this.closest('tr').remove();reindexFileRows()"
+          style="padding:4px 10px;font-size:19px;">✕</button>
+      </td>
+    </tr>`);
+}
+
+function reindexFileRows() {
+  document.querySelectorAll('#file-tbody tr').forEach((tr, i) => {
+    tr.querySelector('td:first-child').textContent = i + 1;
+  });
+}
+
+// ─── Case Status badge ────────────────────────────────────────
+function onCaseStatusChange() {
+  // placeholder for future status badge update
+}
+
+// ─── Save / Draft ─────────────────────────────────────────────
+function saveDraft()  { alert('บันทึกร่างสำเร็จ (mockup)'); }
+function saveCase()   { alert('✅ บันทึกข้อมูลคดีสำเร็จ (mockup)'); }
+
+// ─── Init ─────────────────────────────────────────────────────
+onRoleChange();
+
+// fadeIn animation for new timeline items
+const style = document.createElement('style');
+style.textContent = `@keyframes fadeInDown {
+  from { opacity:0; transform:translateY(-12px); }
+  to   { opacity:1; transform:translateY(0); }
+}`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>

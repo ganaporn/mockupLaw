@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สร้างคำขอใหม่ - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+.doc-row-name {
+  width: 100%; padding: 8px 10px;
+  border: 1px solid #dfe1e2; border-radius: 6px;
+  font-size: 22px; font-family: inherit; background: #fff;
+  transition: border-color .15s;
+}
+.doc-row-name:focus { outline: none; border-color: #1a4480; box-shadow: 0 0 0 3px rgba(26,68,128,.1); }
+.file-row td { padding: 10px 12px; vertical-align: middle; border-bottom: 1px solid #f0f2f5; }
+.file-row:last-child td { border-bottom: none; }
+.file-row:hover { background: #fafcff; }
+.attach-btn-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; background: #f0f4ff; border: 1.5px solid #93c5fd;
+  border-radius: 6px; color: #1e40af; font-size: 20px; cursor: pointer;
+  font-family: inherit; font-weight: 600; transition: all .15s; white-space: nowrap;
+}
+.attach-btn-label:hover { background: #dbeafe; border-color: #60a5fa; }
+.tab-bottom-nav {
+  display: flex; justify-content: flex-end; padding-top: 16px;
+  border-top: 1px solid #f0f2f5; margin-top: 16px;
+}
+.tab-bottom-nav.space-between { justify-content: space-between; }
+
+/* ─── Accident Detail Modal ──────────────────────────────── */
+#accident-modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.45); z-index:9999;
+  align-items:center; justify-content:center;
+}
+#accident-modal-overlay.open { display:flex; }
+#accident-modal {
+  background:#fff; border-radius:12px;
+  width:min(680px,94vw); max-height:88vh;
+  overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.25);
+  animation:modalIn .18s ease;
+}
+@keyframes modalIn {
+  from { transform:translateY(-24px); opacity:0; }
+  to   { transform:translateY(0);    opacity:1; }
+}
+.amodal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:2px solid #e5e7eb;
+  background:#1a4480; border-radius:12px 12px 0 0;
+}
+.amodal-header h2 { margin:0; font-size:24px; font-weight:700; color:#fff; }
+.amodal-close {
+  background:none; border:none; color:#fff; font-size:28px;
+  cursor:pointer; line-height:1; padding:0 4px; border-radius:4px;
+  transition:background .15s;
+}
+.amodal-close:hover { background:rgba(255,255,255,.2); }
+.amodal-body { padding:20px; }
+.amodal-row {
+  display:flex; gap:8px; padding:10px 0;
+  border-bottom:1px solid #f0f2f5; font-size:21px;
+}
+.amodal-row:last-child { border-bottom:none; }
+.amodal-label { color:#71767a; font-weight:600; min-width:200px; flex-shrink:0; }
+.amodal-value { color:#1b1b1b; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="topbar" id="topbar"></header>
+
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header d-flex align-center justify-between">
+      <div>
+        <h1 class="page-title">สร้างคำขอใหม่</h1>
+        <p class="page-subtitle"></p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="req-status-badge"
+          style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;
+            background:#f3f4f6;border:1.5px solid #d1d5db;border-radius:20px;
+            font-size:22px;font-weight:700;color:#6b7280;">
+          📝 ร่าง
+        </div>
+        <a href="case-request.html" class="btn-custom btn-secondary">← กลับรายการ</a>
+      </div>
+    </div>
+
+    <!-- Info alert -->
+    <div class="alert-custom alert-info mb-16">
+      ℹ️ คำขอนี้จะต้องผ่านการพิจารณาจาก <strong>กลุ่มงานคดี</strong> ก่อนจึงจะสร้างเป็นคดีในระบบได้ — กรุณากรอกข้อมูลให้ครบถ้วน
+    </div>
+
+    <!-- ── 2-Tab Card ──────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-body-custom" style="padding:0 20px;">
+        <div class="tabs-nav" id="form-tabs">
+          <button class="tab-btn active" data-tab="tab-detail">📋 กรอกรายละเอียด</button>
+          <button class="tab-btn" data-tab="tab-files">
+            📎 แนบไฟล์
+            <span id="file-count-badge"
+              style="display:none;margin-left:6px;background:#1a4480;color:#fff;
+              border-radius:10px;padding:1px 8px;font-size:18px;font-weight:700;"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Tab 1: กรอกรายละเอียด ─────────────────────────── -->
+      <div id="tab-detail" class="tab-content active" style="padding:24px;">
+
+        <div class="form-section-title">ข้อมูลพื้นฐาน</div>
+        <div style="display:flex;align-items:center;flex-wrap:nowrap;gap:12px;margin-bottom:16px;width:100%;">
+          <span style="font-size:26px;font-weight:600;color:#71767a;white-space:nowrap;">สถานะ</span>
+          <select class="form-control-custom" id="req-status-select" onchange="onStatusChange()"
+            style="font-size:26px;padding:6px 12px;min-width:220px;">
+            <option value="DRAFT">ร่าง</option>
+            <option value="SUBMITTED">รอพิจารณา</option>
+            <option value="UNDER_REVIEW">กำลังตรวจสอบ</option>
+            <option value="APPROVED_CREATE_CASE">อนุมัติ</option>
+            <option value="REQUEST_MORE_DOCS">ขอเอกสารเพิ่มเติม</option>
+            <option value="REJECTED">ปฏิเสธ</option>
+          </select>
+          <div id="approved-unit-row" style="display:none;align-items:center;gap:12px;flex-shrink:0;">
+            <span style="font-size:26px;font-weight:600;color:#71767a;white-space:nowrap;">หน่วยงานที่รับผิดชอบ</span>
+            <select class="form-control-custom" id="approved-unit"
+              style="font-size:20px;padding:6px 12px;min-width:170px;"
+              onchange="onApprovedUnitChange()">
+              <option value="">เลือกหน่วยงาน</option>
+              <option value="PREPARE">เตรียมคดี</option>
+              <option value="LITIGATION">งานคดี</option>
+              <option value="ENFORCEMENT">บังคับคดี</option>
+            </select>
+            <span style="font-size:26px;font-weight:600;color:#71767a;white-space:nowrap;">เลขคดี</span>
+            <input type="text" class="form-control-custom" id="case-no-gen"
+              style="font-size:20px;padding:6px 12px;min-width:190px;"
+              placeholder="เลขคดีที่ได้รับ">
+          </div>
+        </div>
+
+        <!-- ติดตามคดี —แสดงเฉพาะสถานะ APPROVED_CREATE_CASE + มีเลขคดี -->
+        <div id="tracking-link-row" style="display:none;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
+            background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;flex-wrap:wrap;">
+            <span style="font-size:22px;">✅ <strong>อนุมัติสร้างคดีแล้ว</strong></span>
+            <span style="font-size:20px;color:#374151;">เลขคดี: <strong id="tracking-case-no" style="color:#15803d;">—</strong></span>
+            <a id="tracking-link" href="case-tracking.html"
+              class="btn-custom btn-success btn-sm"
+              style="margin-left:auto;font-size:20px;padding:8px 18px;">
+              🔍 ติดตามความคืบหน้าคดี →
+            </a>
+          </div>
+        </div>
+
+        <!-- เหตุผลการปฏิเสธ —แสดงเฉพาะสถานะ REJECTED -->
+        <div id="rejected-reason-row" style="display:none;margin-bottom:16px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="color:#71767a;font-weight:700;">เหตุผล<span class="req">*</span></label>
+            <textarea class="form-control-custom" id="reject-reason" rows="3"
+              style="border-color:#71767a;"
+              placeholder="ระบุเหตุผลที่ปฏิเสธคำขอนี้..."></textarea>
+          </div>
+        </div>
+
+        <!-- รายละเอียดเอกสารที่ขอเพิ่มเติม —แสดงเฉพาะสถานะ REQUEST_MORE_DOCS -->
+        <div id="more-docs-reason-row" style="display:none;margin-bottom:16px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" style="color:#71767a;font-weight:700;">รายละเอียดเอกสารที่ต้องการเพิ่มเติม<span class="req">*</span></label>
+            <textarea class="form-control-custom" id="more-docs-detail" rows="3"
+              style="border-color:#fdba74;background:#fff7ed;"
+              placeholder="ระบุเอกสารหรือข้อมูลที่ต้องการเพิ่มเติม..."></textarea>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">ประเภท<span class="req">*</span></label>
+            <select class="form-control-custom" id="req-type" onchange="onTypeChange()">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="ACCIDENT">🚌 งานอุบัติเหตุ</option>
+              <option value="CONTRACT_MANAGEMENT">📄 งานบริหารสัญญา (รถร่วม)</option>
+              <option value="LEGAL_CONTRACT">📜 นิติกรรมสัญญา</option>
+              <option value="ORG_DEFENDANT">⚖️ องค์การถูกฟ้อง</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">หน่วยงาน<span class="req">*</span></label>
+            <select class="form-control-custom" id="req-source">
+              <option value="">-- เลือกหน่วยงาน --</option>
+              <option>กลุ่มงานคดี</option>
+              <option>สำนักปฏิบัติการรถเอกชนร่วมบริการ 1</option>
+              <option>สำนักปฏิบัติการรถเอกชนร่วมบริการ 2</option>
+              <option>กลุ่มงานนิติกรรม</option>
+              <option>เขตการเดินรถที่ 1</option>
+              <option>เขตการเดินรถที่ 2</option>
+              <option>เขตการเดินรถที่ 3</option>
+              <option>เขตการเดินรถที่ 4</option>
+              <option>เขตการเดินรถที่ 5</option>
+              <option>เขตการเดินรถที่ 6</option>
+              <option>เขตการเดินรถที่ 7</option>
+              <option>เขตการเดินรถที่ 8</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ประเภทหนี้<span class="req">*</span></label>
+            <select class="form-control-custom" id="debt-type">
+              <option value="ACCIDENT_DEBT">หนี้อุบัติเหตุ</option>
+              <option value="COMPENSATION_DEBT">หนี้ค่าตอบแทน</option>
+              <option value="CONTRACT_BREACH" selected>หนี้ผิดสัญญา</option>
+              <option value="EX_EMPLOYEE_RECOURSE">หนี้ไล่เบี้ยอดีตพนักงาน</option>
+              <option value="CONTRACTOR_RECOURSE">หนี้ไล่เบี้ยคู่สัญญา</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ชื่อเรื่อง / หัวข้อ <span class="req">*</span></label>
+          <input type="text" class="form-control-custom" id="req-title"
+            placeholder="ระบุหัวข้อให้ชัดเจน เช่น รถร่วมสาย 40 ผิดสัญญาค้างชำระ 18 งวด">
+        </div>
+
+        
+
+        <!-- Dynamic: งานอุบัติเหตุ -->
+        <div id="accident-fields" style="display:none;">
+          <div class="form-section-title">ข้อมูลอุบัติเหตุ</div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">เลขที่อุบัติเหตุ</label>
+              <select class="form-control-custom" id="accident-no" onchange="onAccidentNoChange()">
+                <option value="">-- เลือกเลขที่อุบัติเหตุ --</option>
+                <option value="1-2569-6-0425">1-2569-6-0425</option>
+                <option value="1-2569-6-0426">1-2569-6-0426</option>
+                <option value="1-2569-6-0427">1-2569-6-0427</option>
+                <option value="1-2569-6-0428">1-2569-6-0428</option>
+                <option value="1-2569-6-0429">1-2569-6-0429</option>
+                <option value="1-2569-6-0430">1-2569-6-0430</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">วันที่เกิดเหตุ <span class="req">*</span></label>
+              <input type="date" class="form-control-custom" id="accident-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">&nbsp;</label>
+              <div id="accident-detail-link-wrap" style="display:none;">
+                <button type="button" id="accident-detail-btn"
+                  class="btn-custom btn-secondary"
+                  style="display:inline-flex;align-items:center;gap:6px;font-size:20px;width:100%;justify-content:center;"
+                  onclick="openAccidentModal()">
+                  🔍 รายละเอียดอุบัติเหตุ
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">รายละเอียดเหตุการณ์</label>
+            <textarea class="form-control-custom" id="accident-detail" rows="3"
+              placeholder="อธิบายเหตุการณ์โดยย่อ เช่น รถโดยสารชนท้ายรถยนต์ส่วนบุคคล ผู้เสียหายได้รับบาดเจ็บ..."></textarea>
+          </div>
+        </div>
+
+        <!-- Dynamic: งานบริหารสัญญา -->
+        <div id="contract-fields" style="display:none;">
+          <div class="form-section-title">ข้อมูลสัญญา / รถร่วม</div>
+
+          <div class="form-group">
+            <label class="form-label">ชื่อคู่สัญญา / ผู้ประกอบการ <span class="req">*</span></label>
+            <input type="text" class="form-control-custom" id="contract-party"
+              placeholder="ชื่อผู้ประกอบการรถร่วม เช่น นายสมชาย ใจดี">
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">ทะเบียนรถ <span class="req">*</span></label>
+              <input type="text" class="form-control-custom" id="vehicle-reg"
+                placeholder="14-7672 กรุงเทพมหานคร">
+            </div>
+            <div class="form-group">
+              <label class="form-label">เลขที่สัญญา <span class="req">*</span></label>
+              <input type="text" class="form-control-custom" id="contract-no"
+                placeholder="รต.41-005/2553">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ประเภทคดี</label>
+              <select class="form-control-custom" id="case-type-select" onchange="onCaseTypeSelect()">
+                <option value="NEW">คดีใหม่</option>
+                <option value="MIGRATE">คดี Migrate</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Migrate fields (ซ่อนอยู่ ถ้า checkbox ถูกเลือก จะแสดง) -->
+          <div id="migrate-fields" style="display:none;margin-bottom:18px;
+            padding:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+            <div style="font-size:20px;font-weight:700;color:#92400e;margin-bottom:12px;">
+              📦 ข้อมูลนำเข้าจากระบบเดิม
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">เลขอ้างอิงเดิม <span class="req">*</span></label>
+              <input type="text" class="form-control-custom" id="migrate-ref"
+                placeholder="เช่น C-2022-0045">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รายละเอียด</label>
+            <textarea class="form-control-custom" id="contract-detail" rows="3"
+              placeholder="ระบุรายละเอียดเพิ่มเติม เช่น ยอดหนี้ค้างชำระ จำนวนงวด สาเหตุการผิดสัญญา"></textarea>
+          </div>
+        </div>
+
+        <!-- Dynamic: นิติกรรมสัญญา -->
+        <div id="legal-fields" style="display:none;">
+          <div class="form-section-title">ข้อมูลสัญญา / นิติกรรม</div>
+          <div class="form-group">
+            <label class="form-label">ชื่อคู่สัญญา <span class="req">*</span></label>
+            <input type="text" class="form-control-custom" id="legal-party"
+              placeholder="ชื่อบุคคลหรือนิติบุคคลคู่สัญญา">
+          </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">ทะเบียนรถ</label>
+              <input type="text" class="form-control-custom" id="legal-vehicle"
+                placeholder="เช่น 40-1234 กรุงเทพมหานคร">
+            </div>
+            <div class="form-group">
+              <label class="form-label">เลขที่สัญญา <span class="req">*</span></label>
+              <input type="text" class="form-control-custom" id="legal-contract-no"
+                placeholder="เช่น รต.41-005/2553">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ประเภทคู่สัญญา <span class="req">*</span></label>
+              <select class="form-control-custom" id="legal-party-type" onchange="onLegalPartyTypeChange()">
+                <option value="">-- เลือก --</option>
+                <option value="JURISTIC">นิติบุคคล</option>
+                <option value="INDIVIDUAL">บุคคลธรรมดา</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">หลักประกันสัญญา</label>
+              <input type="text" class="form-control-custom" id="legal-guarantee"
+                placeholder="เช่น หนังสือค้ำประกันธนาคาร, เงินสด">
+            </div>
+            <div class="form-group">
+              <label class="form-label">สัญญาประกันภัย</label>
+              <input type="text" class="form-control-custom" id="legal-insurance"
+                placeholder="เช่น กรมธรรม์เลขที่ ...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="legal-id-label">เลขทะเบียนนิติบุคคล / เลขที่บัตรประชาชน</label>
+            <input type="text" class="form-control-custom" id="legal-id-no"
+              placeholder="ระบุเลขทะเบียนนิติบุคคล หรือเลขที่บัตรประชาชน">
+          </div>
+          <div class="form-group">
+            <label class="form-label">รายละเอียดคุณลักษณะของงาน</label>
+            <textarea class="form-control-custom" id="legal-scope" rows="2"
+              placeholder="ระบุขอบเขตหรือลักษณะงานตามสัญญา"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">รายละเอียด</label>
+            <textarea class="form-control-custom" id="legal-detail" rows="3"
+              placeholder="ระบุรายละเอียดเพิ่มเติม"></textarea>
+          </div>
+        </div>
+
+        <!-- Dynamic: องค์การถูกฟ้อง -->
+        <div id="org-fields" style="display:none;">
+          <div class="form-section-title">ข้อมูลคดี (องค์การถูกฟ้อง)</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">ประเภทย่อย <span class="req">*</span></label>
+              <select class="form-control-custom" id="org-subtype">
+                <option value="">-- เลือกประเภทย่อย --</option>
+                <option value="EMPLOYEE_TORT">4.1 พนักงานกระทำละเมิด (เขต 1–8 / สำนักงานใหญ่)</option>
+                <option value="CONTRACT_PARTY_TORT">4.2 คู่สัญญากระทำละเมิด (รถร่วม)</option>
+                <option value="OTHER">4.3 อื่นๆ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">สาเหตุ <span class="req">*</span></label>
+              <select class="form-control-custom" id="org-cause">
+                <option value="">-- เลือกสาเหตุ --</option>
+                <option value="EMPLOYEE_TORT">พนักงานกระทำละเมิด</option>
+                <option value="CONTRACT_PARTY_TORT">คู่สัญญากระทำละเมิด</option>
+                <option value="OTHER">อื่นๆ</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label"> มูลค่าเรียกร้อง (ประมาณการ)</label>
+            <input type="number" class="form-control-custom" id="req-amount" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่ยื่นคำขอ</label>
+            <input type="date" class="form-control-custom" id="req-date">
+          </div>
+        </div>
+
+        <div class="tab-bottom-nav">
+          <button class="btn-custom btn-primary" onclick="switchTab('tab-files')">
+            ถัดไป: แนบไฟล์ →
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Tab 2: แนบไฟล์ ──────────────────────────────────── -->
+      <div id="tab-files" class="tab-content" style="padding:24px;display:none;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:700;font-size:24px;color:#1a4480;">รายการเอกสารแนบ</div>
+            <div style="font-size:20px;color:#71767a;margin-top:3px;" id="file-type-hint">
+              เลือกประเภทคำขอในแท็บแรก เพื่อโหลดรายการเอกสารแนะนำ
+            </div>
+          </div>
+          <button class="btn-custom btn-outline btn-sm" onclick="addFileRow()">＋ เพิ่มเอกสาร</button>
+        </div>
+
+        <!-- File table -->
+        <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f8fafc;">
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.04em;color:#71767a;border-bottom:2px solid #dfe1e2;
+                  width:44px;text-align:center;">#</th>
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.04em;color:#71767a;border-bottom:2px solid #dfe1e2;">
+                  ชื่อไฟล์ / เอกสาร</th>
+                <th style="padding:10px 14px;font-size:20px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.04em;color:#71767a;border-bottom:2px solid #dfe1e2;
+                  width:220px;">แนบ</th>
+                <th style="padding:10px 14px;border-bottom:2px solid #dfe1e2;width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="file-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Warning note -->
+        <div style="margin-top:12px;padding:12px 14px;background:#fffbeb;border:1px solid #fde68a;
+          border-radius:6px;font-size:20px;color:#92400e;display:flex;align-items:flex-start;gap:8px;">
+          <span>⚠️</span>
+          <span>เอกสารที่มีเครื่องหมาย <strong style="color:#dc2626;">*</strong> ถือเป็นเอกสารจำเป็น
+          กรุณาแนบให้ครบก่อนส่งคำขอ</span>
+        </div>
+
+        <div class="tab-bottom-nav space-between">
+          <button class="btn-custom btn-secondary" onclick="switchTab('tab-detail')">
+            ← ย้อนกลับ: รายละเอียด
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Bottom Action Bar ──────────────────────────────────── -->
+    <div class="card" style="padding:16px 20px;margin-top:16px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:20px;" id="form-status-hint"></span>
+        <div style="margin-left:auto;display:flex;gap:8px;" id="action-btns">
+          <a href="case-request.html" class="btn-custom btn-secondary">ยกเลิก</a>
+          <button class="btn-custom btn-secondary" id="btn-draft" onclick="saveDraft()">💾 บันทึกร่าง</button>
+          <button class="btn-custom btn-primary" id="btn-submit" onclick="submitRequest()">📨 ส่งคำขอ</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Accident Detail Modal ──────────────────────────────── -->
+  <div id="accident-modal-overlay" onclick="closeAccidentModal(event)">
+    <div id="accident-modal">
+      <div class="amodal-header">
+        <h2>🚌 รายละเอียดอุบัติเหตุ</h2>
+        <button class="amodal-close" onclick="closeAccidentModal()" title="ปิด">✕</button>
+      </div>
+      <div class="amodal-body" id="accident-modal-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../assets/js/data.js"></script>
+<script src="../assets/js/app.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = buildSidebar('request');
+document.getElementById('topbar').innerHTML = buildTopbar('คำขอสร้างคดี', 'สร้างคำขอใหม่');
+
+// Set today's date
+document.getElementById('req-date').value = new Date().toISOString().split('T')[0];
+
+// ─── Tab switching ────────────────────────────────────────────
+document.querySelectorAll('#form-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(tabId) {
+  document.querySelectorAll('#form-tabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.remove('active');
+    c.style.display = 'none';
+  });
+  const target = document.getElementById(tabId);
+  target.classList.add('active');
+  target.style.display = 'block';
+}
+
+// ─── Preset document lists per category ──────────────────────
+const PRESET_DOCS = {
+  ACCIDENT: [
+  ],
+  CONTRACT_MANAGEMENT: [
+    { name: 'หนังสือสัญญานำรถตู้ปรับอากาศเข้าร่วมเดินรถกับองค์การ สัญญาเลขที่ รต. ๓๗-๑๑๘๕/๒๕๖๒ วันที่ ๒๖ สิงหาคม ๒๕๖๒', req: true  },
+    { name: 'หนังสือแจ้งให้ชำระหนี้ค่าตอบแทน',                                                                req: true  },
+    { name: 'ใบตอบรับทางไปรษณีย์หนังสือขอให้ชำระหนี้ค่าตอบแทน',                                              req: true  },
+    { name: 'หนังสือขออนุมัติเลิกสัญญาและให้ชดใช้หนี้ค่าตอบแทนค้างชำระ',                                     req: true  },
+    { name: 'หนังสือบอกเลิกสัญญาเข้าร่วมเดินรถและชดใช้หนี้ค่าตอบแทนค้างชำระ ตามหนังสือที่ ฝรร.๙๐๓/๒๕๖๗ ลงวันที่ ๒๕ ตุลาคม ๒๕๖๗', req: true  },
+    { name: 'เอกสารสถานะการจัดส่งไปรษณีย์',                                                                   req: true  },
+    { name: 'หนังสือบอกเลิกสัญญา',                                                                             req: true  },
+    { name: 'รายงานยืนยันยอดหนี้จาก สบก.',                                                                     req: true  },
+    { name: 'หนังสือขออนุมัติริบเงินประกันสัญญา , หักเงินประกันค่าความเสียหายอุบัติเหตุ',                     req: true  },
+    { name: 'รายละเอียดริบเงินหลักประกันสัญญา และนำเงินหลักประกันความเสียหายมาหักกลบลบหนี้',                  req: true  },
+    { name: 'บัญชีตารางแสดงหนี้สิน',                                                                           req: true  },
+    { name: 'เอกสารบัญชีรายละเอียดการถอน คค ๐๔๐๙.๖/๒๒๗๑ ลงวันที่ ๒๔ มิถุนายน ๒๕๖๗',                        req: true  },
+    { name: 'ทะเบียนราษฎร ทร.๑๔/๑',                                                                           req: true  },
+    { name: 'สำเนาบัตรประชาชนเจ้าของรถ',                                                                       req: true  },
+    { name: 'สำเนาทะเบียนบ้านเจ้าของรถ',                                                                       req: true  },
+    { name: 'สำเนาทะเบียนรถคู่สัญญา',                                                                          req: true  },
+    { name: 'ประวัติรถตู้โดยสารปรับอากาศ',                                                                     req: true  },
+    { name: 'ใบอนุญาตประกอบการ',                                                                               req: true  },
+    { name: 'อื่นๆ (กรณีที่ศาลขอเพิ่ม)',                                                                       req: false }
+  ],
+  LEGAL_CONTRACT: [
+
+  ],
+  ORG_DEFENDANT: [
+  ]
+};
+
+const CAT_LABEL = {
+  ACCIDENT: 'งานอุบัติเหตุ',
+  CONTRACT_MANAGEMENT: 'งานบริหารสัญญา (รถร่วม)',
+  LEGAL_CONTRACT: 'นิติกรรมสัญญา',
+  ORG_DEFENDANT: 'องค์การถูกฟ้อง'
+};
+
+// ─── File row management ──────────────────────────────────────
+let rowCounter = 0;
+
+function buildFileRow(name = '', required = false) {
+  rowCounter++;
+  const id = rowCounter;
+  return `
+    <tr class="file-row" id="row-${id}">
+      <td style="text-align:center;color:#9ca3af;font-size:20px;width:44px;">${id}</td>
+      <td>
+        <input type="text" class="doc-row-name" value="${name}"
+          placeholder="ระบุชื่อเอกสาร">
+        ${required
+          ? `<div style="font-size:18px;color:#dc2626;margin-top:3px;font-weight:600;">
+               * เอกสารจำเป็น
+             </div>`
+          : ''}
+      </td>
+      <td style="white-space:nowrap;">
+        <label class="attach-btn-label"
+          onmouseover="this.style.background='#dbeafe'"
+          onmouseout="this.style.background='#f0f4ff'">
+          📎 เลือกไฟล์
+          <input type="file" style="display:none;"
+            onchange="onFileSelected(this,${id})"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls">
+        </label>
+        <div id="fname-${id}" style="font-size:20px;color:#374151;margin-top:5px;
+          word-break:break-all;"></div>
+      </td>
+      <td style="text-align:center;width:44px;">
+        <button onclick="removeRow(${id})"
+          style="background:none;border:none;cursor:pointer;color:#d1d5db;
+          font-size:22px;padding:2px 6px;border-radius:4px;transition:color .15s;"
+          onmouseover="this.style.color='#ef4444'"
+          onmouseout="this.style.color='#d1d5db'"
+          title="ลบแถวนี้">✕</button>
+      </td>
+    </tr>`;
+}
+
+function renderFileRows(docs) {
+  rowCounter = 0;
+  document.getElementById('file-tbody').innerHTML =
+    docs.map(d => buildFileRow(d.name, d.req)).join('');
+  updateFileCount();
+}
+
+function addFileRow() {
+  const tbody = document.getElementById('file-tbody');
+  const tmp = document.createElement('tbody');
+  tmp.innerHTML = buildFileRow('', false);
+  tbody.appendChild(tmp.firstElementChild);
+  updateFileCount();
+}
+
+function removeRow(id) {
+  const row = document.getElementById(`row-${id}`);
+  if (row) row.remove();
+  updateFileCount();
+}
+
+function onFileSelected(input, id) {
+  const display = document.getElementById(`fname-${id}`);
+  if (input.files && input.files[0]) {
+    const f = input.files[0];
+    const size = f.size < 1048576
+      ? (f.size / 1024).toFixed(0) + ' KB'
+      : (f.size / 1048576).toFixed(1) + ' MB';
+    display.innerHTML =
+      `<span style="color:#15803d;font-weight:600;">✅ ${f.name}</span>
+       <span style="color:#9ca3af;">(${size})</span>`;
+  } else {
+    display.innerHTML = '';
+  }
+  updateFileCount();
+}
+
+function updateFileCount() {
+  let count = 0;
+  document.querySelectorAll('#file-tbody input[type=file]').forEach(inp => {
+    if (inp.files && inp.files.length > 0) count++;
+  });
+  const badge = document.getElementById('file-count-badge');
+  if (count > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = count + ' ไฟล์';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ─── Case type change → update dynamic fields + file presets ─
+function onTypeChange() {
+  const type = document.getElementById('req-type').value;
+  document.getElementById('accident-fields').style.display  = type === 'ACCIDENT'             ? '' : 'none';
+  document.getElementById('contract-fields').style.display  = type === 'CONTRACT_MANAGEMENT'  ? '' : 'none';
+  document.getElementById('legal-fields').style.display     = type === 'LEGAL_CONTRACT'       ? '' : 'none';
+  document.getElementById('org-fields').style.display       = type === 'ORG_DEFENDANT'        ? '' : 'none';
+
+  // Auto-set ประเภทหนี้ default by type
+  const debtDefaults = {
+    ACCIDENT:            'ACCIDENT_DEBT',
+    CONTRACT_MANAGEMENT: 'CONTRACT_BREACH',
+    LEGAL_CONTRACT:      'CONTRACT_BREACH',
+    ORG_DEFENDANT:       'ACCIDENT_DEBT'
+  };
+  if (type && debtDefaults[type]) {
+    document.getElementById('debt-type').value = debtDefaults[type];
+  }
+
+  // Reset migrate dropdown when switching away from CONTRACT_MANAGEMENT
+  if (type !== 'CONTRACT_MANAGEMENT') {
+    const sel = document.getElementById('case-type-select');
+    if (sel) { sel.value = 'NEW'; }
+    const mf = document.getElementById('migrate-fields');
+    if (mf) { mf.style.display = 'none'; }
+  }
+
+  const hint = document.getElementById('file-type-hint');
+  if (type && PRESET_DOCS[type]) {
+    hint.textContent =
+      `รายการเอกสารสำหรับ "${CAT_LABEL[type]}" — เพิ่ม/แก้ไขได้ตามความเหมาะสม`;
+    renderFileRows(PRESET_DOCS[type]);
+  } else {
+    hint.textContent = 'เลือกประเภทคำขอในแท็บแรก เพื่อโหลดรายการเอกสารแนะนำ';
+    renderFileRows([{ name: '', req: false }]);
+  }
+}
+
+// ─── Accident mock detail data ───────────────────────────────────
+const ACCIDENT_DETAIL = {
+  '1-2569-6-0425': { date:'31 พ.ค. 2569', zone:'เขตการเดินรถที่ 7', vehicle:'40-5567 กรุงเทพมหานคร', route:'สาย 191', driver:'นายชาตรี แก้วใส', victim:'นายมนตรี บ้านสวน', location:'ซ.เพชรเกษม 69 แขวงบางแค เขตบางแค กรุงเทพมหานคร', detail:'รถโดยสารสาย 191 ชนรั้วบ้านเอกชนในซอยเพชรเกษม 69 ความเสียหายรั้วและทรัพย์สิน', amount:'28,000 บาท' },
+  '1-2569-6-0426': { date:'21 มิ.ย. 2569', zone:'เขตการเดินรถที่ 3', vehicle:'40-7723 กรุงเทพมหานคร', route:'สาย 77', driver:'นายกิตติ วงศ์ทอง', victim:'นางสาวอรุณ พิมพ์ใจ', location:'ถ.พหลโยธิน แยกรัชโยธิน กรุงเทพมหานคร', detail:'รถโดยสารสาย 77 ชนผู้ข้ามถนนบริเวณแยกรัชโยธิน ผู้เสียหายได้รับบาดเจ็บที่ขาซ้าย', amount:'45,000 บาท' },
+  '1-2569-6-0427': { date:'23 มิ.ย. 2569', zone:'เขตการเดินรถที่ 1', vehicle:'40-2251 กรุงเทพมหานคร', route:'สาย 34', driver:'นายอดิศร ศรีพงษ์', victim:'นายประเสริฐ วัฒนา', location:'ถ.สุขุมวิท แขวงคลองเตย กรุงเทพมหานคร', detail:'รถโดยสารสาย 34 ชนท้ายรถยนต์ส่วนบุคคล ผู้เสียหายได้รับความเสียหายที่ท้ายรถ', amount:'38,000 บาท' },
+  '1-2569-6-0428': { date:'24 มิ.ย. 2569', zone:'เขตการเดินรถที่ 2', vehicle:'40-1188 กรุงเทพมหานคร', route:'สาย 52', driver:'นายสุรชัย ทองดี', victim:'นางวิไลลักษณ์ สุขใจ', location:'ถ.รามคำแหง แขวงหัวหมาก เขตบางกะปิ กรุงเทพมหานคร', detail:'รถโดยสารสาย 52 ชนรถจักรยานยนต์ ผู้เสียหายล้มได้รับบาดเจ็บที่แขนขวา', amount:'22,000 บาท' },
+  '1-2569-6-0429': { date:'25 มิ.ย. 2569', zone:'เขตการเดินรถที่ 5', vehicle:'40-3341 กรุงเทพมหานคร', route:'สาย 107', driver:'นายพิชัย มั่นคง', victim:'นายสิทธิชัย วงษ์สว่าง', location:'ถ.ลาดพร้าว แขวงจรเข้บัว เขตลาดพร้าว กรุงเทพมหานคร', detail:'รถโดยสารสาย 107 เบียดชนประตูรั้วบ้าน ขณะถอยเลี้ยว ความเสียหายรั้วและรถ', amount:'15,000 บาท' },
+  '1-2569-6-0430': { date:'26 มิ.ย. 2569', zone:'เขตการเดินรถที่ 6', vehicle:'40-6612 กรุงเทพมหานคร', route:'สาย 60', driver:'นายธีรพล จันทร์สว่าง', victim:'นางสาวกนกวรรณ แสงทอง', location:'ถ.เพชรบุรี แขวงมักกะสัน เขตราษฎร์บูรณะ กรุงเทพมหานคร', detail:'รถโดยสารสาย 60 ชนท้ายรถยนต์ส่วนบุคคล บริเวณสัญญาณไฟแดง ผู้เสียหายได้รับบาดเจ็บเล็กน้อย', amount:'18,000 บาท' }
+};
+
+// ─── Accident no change → show/hide modal button ─────────────────
+function onAccidentNoChange() {
+  const val = document.getElementById('accident-no').value;
+  const wrap = document.getElementById('accident-detail-link-wrap');
+  wrap.style.display = val ? '' : 'none';
+}
+
+// ─── Open / Close accident detail modal ──────────────────────────
+function openAccidentModal() {
+  const no = document.getElementById('accident-no').value;
+  const d  = ACCIDENT_DETAIL[no];
+  const body = document.getElementById('accident-modal-body');
+  const rows = [
+    ['เลขที่อุบัติเหตุ', no],
+    ['วันที่เกิดเหตุ',   d?.date     || '—'],
+    ['เขตการเดินรถ',     d?.zone     || '—'],
+    ['ทะเบียนรถ',        d?.vehicle  || '—'],
+    ['สายรถ',            d?.route    || '—'],
+    ['พนักงานขับรถ',     d?.driver   || '—'],
+    ['ผู้เสียหาย / คู่กรณี', d?.victim || '—'],
+    ['สถานที่เกิดเหตุ',  d?.location || '—'],
+    ['รายละเอียดเหตุการณ์', d?.detail || '—'],
+    ['มูลค่าความเสียหาย',   d?.amount  || '—'],
+  ];
+  body.innerHTML = rows.map(([lbl, val]) =>
+    `<div class="amodal-row">
+       <span class="amodal-label">${lbl}</span>
+       <span class="amodal-value">${val}</span>
+     </div>`
+  ).join('');
+  document.getElementById('accident-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAccidentModal(e) {
+  if (e && e.target !== document.getElementById('accident-modal-overlay')) return;
+  document.getElementById('accident-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── Approved unit change → auto-generate เลขคดี ───────────────────────
+const CASE_NO_MAP = {
+  PREPARE: {
+    ACCIDENT:            'ตค.01',
+    CONTRACT_MANAGEMENT: 'ตค.02',
+    LEGAL_CONTRACT:      'ตค.03',
+    ORG_DEFENDANT:       'ตค.04'
+  },
+  LITIGATION: {
+    ACCIDENT:            'คด.01',
+    CONTRACT_MANAGEMENT: 'คด.02',
+    LEGAL_CONTRACT:      'คด.03',
+    ORG_DEFENDANT:       'คด.04'
+  },
+  ENFORCEMENT: {
+    ACCIDENT:            'บค.01',
+    CONTRACT_MANAGEMENT: 'บค.02',
+    LEGAL_CONTRACT:      'บค.03',
+    ORG_DEFENDANT:       'บค.04'
+  }
+};
+
+function onApprovedUnitChange() {
+  const unit = document.getElementById('approved-unit').value;
+  const type = document.getElementById('req-type').value;
+  const el   = document.getElementById('case-no-gen');
+  if (!unit || !el) return;
+  if (el.value) return; // ไม่เขียนทับถ้ากรอกข้อมูลไว้แล้ว
+  const prefix = (CASE_NO_MAP[unit] && type) ? CASE_NO_MAP[unit][type] : (unit === 'PREPARE' ? 'ตค' : unit === 'LITIGATION' ? 'คด' : 'บค');
+  const year = '2569';
+  const seq  = String(Math.floor(Math.random() * 900) + 100).padStart(4, '0');
+  el.value = `${prefix}.${year}/${seq}`;
+  // show tracking link once case_no is generated
+  const trackRow  = document.getElementById('tracking-link-row');
+  const trackNo   = document.getElementById('tracking-case-no');
+  const trackLink = document.getElementById('tracking-link');
+  if (trackRow && el.value) {
+    trackNo.textContent = el.value;
+    const params = new URLSearchParams(window.location.search);
+    const reqId  = params.get('req') || '';
+    trackLink.href = `case-tracking.html?req=${reqId}&case_no=${encodeURIComponent(el.value)}`;
+    trackRow.style.display = '';
+  }
+}
+
+// ─── Legal party type → update ID label ──────────────────────
+function onLegalPartyTypeChange() {
+  const val = document.getElementById('legal-party-type').value;
+  const lbl = document.getElementById('legal-id-label');
+  if (val === 'JURISTIC')   lbl.textContent = 'เลขทะเบียนนิติบุคคล';
+  else if (val === 'INDIVIDUAL') lbl.textContent = 'เลขที่บัตรประชาชน';
+  else lbl.textContent = 'เลขทะเบียนนิติบุคคล / เลขที่บัตรประชาชน';
+}
+
+// ─── Case type select (Migrate toggle) ─────────────────────────────
+function onCaseTypeSelect() {
+  const val = document.getElementById('case-type-select').value;
+  document.getElementById('migrate-fields').style.display = val === 'MIGRATE' ? '' : 'none';
+  if (val !== 'MIGRATE') {
+    const ref = document.getElementById('migrate-ref');
+    const note = document.getElementById('migrate-note');
+    if (ref) ref.value = '';
+    if (note) note.value = '';
+  }
+}
+
+// ─── Migrate checkbox toggle (legacy — kept for safety) ───────────────
+function toggleMigrateFields() {
+  const checked = document.getElementById('is-migrate')?.checked;
+  const mf = document.getElementById('migrate-fields');
+  if (mf) mf.style.display = checked ? '' : 'none';
+}
+
+// ─── Status badge helper ─────────────────────────────────────────
+function setStatusBadge(status) {
+  const badge = document.getElementById('req-status-badge');
+  const styles = {
+    draft:        { bg:'#f3f4f6', border:'#d1d5db', color:'#6b7280', label:'ร่าง' },
+    submitted:    { bg:'#fefce8', border:'#fde047', color:'#92400e', icon:'📬', label:'รอพิจารณา' },
+    under_review: { bg:'#eff6ff', border:'#93c5fd', color:'#1e40af', icon:'🔍', label:'กำลังตรวจสอบ' },
+    approved:     { bg:'#f0fdf4', border:'#86efac', color:'#166534', icon:'✅', label:'อนุมัติ' },
+    more_docs:    { bg:'#fff7ed', border:'#fdba74', color:'#92400e', icon:'📋', label:'ขอเอกสารเพิ่มเติม' },
+    rejected:     { bg:'#fef2f2', border:'#fca5a5', color:'#991b1b', icon:'❌', label:'ปฏิเสธ' }
+  };
+  const s = styles[status] || styles.draft;
+  badge.style.background = s.bg;
+  badge.style.borderColor = s.border;
+  badge.style.color = s.color;
+  badge.innerHTML = `${s.icon} ${s.label}`;
+}
+
+// ─── Status select change ─────────────────────────────────────────
+function onStatusChange() {
+  const val = document.getElementById('req-status-select').value;
+  const map = {
+    DRAFT:                'draft',
+    SUBMITTED:            'submitted',
+    UNDER_REVIEW:         'under_review',
+    APPROVED_CREATE_CASE: 'approved',
+    REQUEST_MORE_DOCS:    'more_docs',
+    REJECTED:             'rejected'
+  };
+  setStatusBadge(map[val] || 'draft');
+  // แสดง/ซ่อน หน่วยงานที่รับผิดชอบ
+  const unitRow = document.getElementById('approved-unit-row');
+  if (unitRow) unitRow.style.display = val === 'APPROVED_CREATE_CASE' ? 'flex' : 'none';
+  if (val !== 'APPROVED_CREATE_CASE') {
+    const u = document.getElementById('approved-unit');
+    if (u) u.value = '';
+    const cn = document.getElementById('case-no-gen');
+    if (cn) cn.value = '';
+  }
+  // แสดง/ซ่อน ลิงก์ติดตามคดี
+  const trackRow = document.getElementById('tracking-link-row');
+  if (trackRow) {
+    const caseNo = document.getElementById('case-no-gen')?.value;
+    trackRow.style.display = (val === 'APPROVED_CREATE_CASE' && caseNo) ? '' : 'none';
+  }
+  // แสดง/ซ่อน เหตุผลการปฏิเสธ
+  const rejectRow = document.getElementById('rejected-reason-row');
+  if (rejectRow) rejectRow.style.display = val === 'REJECTED' ? '' : 'none';
+  if (val !== 'REJECTED') {
+    const rr = document.getElementById('reject-reason');
+    if (rr) rr.value = '';
+  }
+  // แสดง/ซ่อน รายละเอียดเอกสารเพิ่มเติม
+  const moreDocsRow = document.getElementById('more-docs-reason-row');
+  if (moreDocsRow) moreDocsRow.style.display = val === 'REQUEST_MORE_DOCS' ? '' : 'none';
+  if (val !== 'REQUEST_MORE_DOCS') {
+    const md = document.getElementById('more-docs-detail');
+    if (md) md.value = '';
+  }
+}
+
+// ─── Mock detail data per request (prefill when ?req= present) ──
+const MOCK_REQ_DETAIL = {
+  1: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 1', debt:'CONTRACT_BREACH',
+       title:'รถร่วมสาย 40 ผิดสัญญาค้างชำระ 18 งวด', amount:85000, status:'SUBMITTED',
+       contract_party:'นายสมชาย ใจดี', vehicle_reg:'14-7672 กรุงเทพมหานคร', contract_no:'รต.40-012/2553', case_type:'NEW',
+       detail_text:'ค้างชำระค่าตอบแทน 18 งวด ตั้งแต่เดือน ม.ค. 2567 รวมมูลหนี้ประมาณ 85,000 บาท' },
+  2: { type:'ACCIDENT', source:'เขตการเดินรถที่ 3', debt:'ACCIDENT_DEBT',
+       title:'อุบัติเหตุรถสาย 77 ชนคนข้ามถนน ถ.พหลโยธิน', amount:45000, status:'DRAFT',
+       accident_no:'1-2569-6-0426', accident_date:'2026-06-21', accident_zone:'เขตการเดินรถที่ 3',
+       vehicle:'40-7723 กรุงเทพมหานคร', route:'สาย 77', driver:'นายกิตติ วงศ์ทอง',
+       victim:'นางสาวอรุณ พิมพ์ใจ', location:'ถ.พหลโยธิน แยกรัชโยธิน กรุงเทพมหานคร',
+       detail_text:'รถโดยสารสาย 77 ชนผู้ข้ามถนนบริเวณแยกรัชโยธิน ผู้เสียหายได้รับบาดเจ็บที่ขาซ้าย' },
+  3: { type:'ORG_DEFENDANT', source:'กลุ่มงานนิติกรรม', debt:'ACCIDENT_DEBT',
+       title:'ถูกฟ้องคดีปกครอง กรณีเปลี่ยนเส้นทางสาย 150', amount:250000, status:'UNDER_REVIEW',
+       org_subtype:'OTHER', org_cause:'OTHER' },
+  4: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 2', debt:'CONTRACT_BREACH',
+       title:'รถร่วมสาย 8 ค้างชำระค่าตอบแทน 24 งวด', amount:120000, status:'APPROVED_CREATE_CASE',
+       approved_unit:'PREPARE', case_no:'ตค.รร.2569/0041',
+       contract_party:'นายวิทยา โชคดี', vehicle_reg:'14-4521 กรุงเทพมหานคร', contract_no:'รต.08-044/2550', case_type:'NEW',
+       detail_text:'ค้างชำระค่าตอบแทน 24 งวด ตั้งแต่เดือน เม.ย. 2566 รวมยอดหนี้ 120,000 บาท' },
+  5: { type:'ACCIDENT', source:'เขตการเดินรถที่ 1', debt:'ACCIDENT_DEBT',
+       title:'อุบัติเหตุรถสาย 34 ชนท้ายรถยนต์ส่วนบุคคล ถ.สุขุมวิท', amount:38000, status:'SUBMITTED',
+       accident_no:'1-2569-6-0427', accident_date:'2026-06-23', accident_zone:'เขตการเดินรถที่ 1',
+       vehicle:'40-2251 กรุงเทพมหานคร', route:'สาย 34', driver:'นายอดิศร ศรีพงษ์',
+       victim:'นายประเสริฐ วัฒนา', location:'ถ.สุขุมวิท แขวงคลองเตย กรุงเทพมหานคร',
+       detail_text:'รถโดยสารสาย 34 ชนท้ายรถยนต์ส่วนบุคคล ผู้เสียหายได้รับความเสียหายที่ท้ายรถ' },
+  6: { type:'LEGAL_CONTRACT', source:'กลุ่มงานนิติกรรม', debt:'CONTRACT_BREACH',
+       title:'ขอทำสัญญาซื้อขายอะไหล่รถโดยสาร ปี 2568', amount:2500000, status:'SUBMITTED',
+       party:'บริษัท อะไหล่ขนส่ง จำกัด', contract_no:'สซ.015/2568', party_type:'JURISTIC',
+       guarantee:'หนังสือค้ำประกันธนาคาร 250,000 บาท', insurance:'', id_no:'0105561234567',
+       scope:'จัดหาอะไหล่รถโดยสารตามรายการในบัญชีแนบท้าย',
+       detail_text:'สัญญาซื้อขายอะไหล่รถโดยสาร ประจำปี 2568 วงเงิน 2.5 ล้านบาท' },
+  7: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 1', debt:'CONTRACT_BREACH',
+       title:'รถร่วมสาย 62 ผิดนัดชำระหนี้ค่าตอบแทนรายเดือน 12 งวด', amount:62000, status:'APPROVED_CREATE_CASE',
+       approved_unit:'LITIGATION', case_no:'คด.รร.2569/0078',
+       contract_party:'นางสาวพรพิมล เชียงทอง', vehicle_reg:'14-8834 กรุงเทพมหานคร', contract_no:'รต.62-078/2554', case_type:'NEW',
+       detail_text:'ค้างชำระค่าตอบแทน 12 งวด รวมยอดหนี้ 62,000 บาท' },
+  8: { type:'ORG_DEFENDANT', source:'เขตการเดินรถที่ 5', debt:'ACCIDENT_DEBT',
+       title:'พนักงานขับรถสาย 107 ชนรถจักรยานยนต์ ผู้เสียหายยื่นฟ้อง', amount:180000, status:'UNDER_REVIEW',
+       org_subtype:'EMPLOYEE_TORT', org_cause:'EMPLOYEE_TORT' },
+  9: { type:'CONTRACT_MANAGEMENT', source:'สำนักปฏิบัติการรถเอกชนร่วมบริการ 2', debt:'CONTRACT_BREACH',
+       title:'รถร่วมสาย 15 ค้างชำระหนี้หลักประกัน ถูกริบแล้ว', amount:95000, status:'REJECTED',
+       contract_party:'นายกิตติศักดิ์ มีโชค', vehicle_reg:'14-3312 กรุงเทพมหานคร', contract_no:'รต.15-091/2551', case_type:'NEW',
+       detail_text:'ค้างชำระหนี้หลักประกัน ริบหลักประกันแล้ว แต่ยังคงค้างชำระส่วนที่เหลือ' },
+  10: { type:'ACCIDENT', source:'เขตการเดินรถที่ 7', debt:'ACCIDENT_DEBT',
+        title:'อุบัติเหตุรถสาย 191 ชนรั้วบ้านเอกชน ย่านบางแค', amount:28000, status:'APPROVED_CREATE_CASE',
+        approved_unit:'PREPARE', case_no:'ตค.อบ.2569/0025',
+        accident_no:'1-2569-6-0425', accident_date:'2026-05-31', accident_zone:'เขตการเดินรถที่ 7',
+        vehicle:'40-5567 กรุงเทพมหานคร', route:'สาย 191', driver:'นายชาตรี แก้วใส',
+        victim:'นายมนตรี บ้านสวน', location:'ซ.เพชรเกษม 69 แขวงบางแค เขตบางแค กรุงเทพมหานคร',
+        detail_text:'รถโดยสารสาย 191 ชนรั้วบ้านเอกชนในซอยเพชรเกษม 69 ความเสียหายรั้วและทรัพย์สิน' },
+  11: { type:'LEGAL_CONTRACT', source:'กลุ่มงานนิติกรรม', debt:'CONTRACT_BREACH',
+        title:'ต่ออายุสัญญาจ้างเหมาซ่อมบำรุงรถโดยสาร ปี 2568-2569', amount:8500000, status:'DRAFT',
+        party:'บริษัท ซ่อมบำรุงรถ (ประเทศไทย) จำกัด', contract_no:'จซ.003/2568', party_type:'JURISTIC',
+        guarantee:'หนังสือค้ำประกันธนาคาร 850,000 บาท', insurance:'', id_no:'0105562345678',
+        scope:'จ้างเหมาซ่อมบำรุงรถโดยสารขสมก. ทั้งระบบ ระยะเวลา 2 ปี',
+        detail_text:'ต่ออายุสัญญาจ้างเหมาซ่อมบำรุงรถโดยสาร สัญญาหลักปี 2566–2568 สิ้นสุดแล้ว' },
+  12: { type:'ORG_DEFENDANT', source:'กลุ่มงานคดี', debt:'CONTRACT_BREACH',
+        title:'ถูกฟ้องคดีแพ่ง กรณีคู่สัญญารถร่วมเรียกค่าเสียหายสาย 90', amount:320000, status:'REJECTED',
+        org_subtype:'CONTRACT_PARTY_TORT', org_cause:'CONTRACT_PARTY_TORT' }
+};
+
+// ─── Prefill form from mock data ─────────────────────────────────
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+function prefillForm(d) {
+  setVal('req-type', d.type);   onTypeChange();
+  setVal('req-source', d.source);
+  setVal('debt-type', d.debt);
+  setVal('req-title', d.title);
+  setVal('req-amount', d.amount);
+
+  // status select + badge
+  const stEl = document.getElementById('req-status-select');
+  if (stEl) { stEl.value = d.status || 'DRAFT'; onStatusChange(); }
+  if (d.status === 'APPROVED_CREATE_CASE') {
+    setVal('approved-unit', d.approved_unit || '');
+    setVal('case-no-gen', d.case_no || '');
+    // แสดง tracking link พร้อมเลขคดี
+    const trackRow = document.getElementById('tracking-link-row');
+    const trackNo  = document.getElementById('tracking-case-no');
+    const trackLink = document.getElementById('tracking-link');
+    if (trackRow && d.case_no) {
+      trackNo.textContent  = d.case_no;
+      trackLink.href = `case-tracking.html?req=${reqId}&case_no=${encodeURIComponent(d.case_no)}`;
+      trackRow.style.display = '';
+    }
+  }
+
+  if (d.type === 'CONTRACT_MANAGEMENT') {
+    setVal('contract-party', d.contract_party);
+    setVal('vehicle-reg', d.vehicle_reg);
+    setVal('contract-no', d.contract_no);
+    setVal('contract-detail', d.detail_text);
+    const ctSel = document.getElementById('case-type-select');
+    if (ctSel) { ctSel.value = d.case_type || 'NEW'; onCaseTypeSelect(); }
+  }
+  if (d.type === 'ACCIDENT') {
+    setVal('accident-no', d.accident_no);
+    onAccidentNoChange();
+    setVal('accident-date', d.accident_date);
+    setVal('accident-zone', d.accident_zone);
+    setVal('accident-vehicle', d.vehicle);
+    setVal('accident-route', d.route);
+    setVal('accident-driver', d.driver);
+    setVal('accident-victim', d.victim);
+    setVal('accident-location', d.location);
+    setVal('accident-detail', d.detail_text);
+  }
+  if (d.type === 'LEGAL_CONTRACT') {
+    setVal('legal-party', d.party);
+    setVal('legal-contract-no', d.contract_no);
+    const ptEl = document.getElementById('legal-party-type');
+    if (ptEl) { ptEl.value = d.party_type || ''; onLegalPartyTypeChange(); }
+    setVal('legal-guarantee', d.guarantee);
+    setVal('legal-insurance', d.insurance);
+    setVal('legal-id-no', d.id_no);
+    setVal('legal-scope', d.scope);
+    setVal('legal-detail', d.detail_text);
+  }
+  if (d.type === 'ORG_DEFENDANT') {
+    setVal('org-subtype', d.org_subtype);
+    setVal('org-cause', d.org_cause);
+  }
+}
+
+// ─── Form actions ───────────────────────────────────────────────────
+function saveDraft() {
+  setStatusBadge('draft');
+  const hint = document.getElementById('form-status-hint');
+  hint.innerHTML = '<span style="color:#92400e;">💾 บันทึกร่างเรียบร้อยแล้ว</span>';
+  setTimeout(() => { hint.innerHTML = ''; }, 3000);
+}
+
+function submitRequest() {
+  const type  = document.getElementById('req-type').value;
+  const title = document.getElementById('req-title').value.trim();
+  if (!type)  { alert('กรุณาเลือกประเภทคำขอ');  switchTab('tab-detail'); return; }
+  if (!title) { alert('กรุณาระบุชื่อเรื่อง');    switchTab('tab-detail'); return; }
+  if (confirm('ยืนยันส่งคำขอ?\nคำขอจะถูกส่งให้กลุ่มงานคดีพิจารณาทันที')) {
+    // เปลี่ยน status badge เป็น รอพิจารณา
+    setStatusBadge('submitted');
+    // disable ปุ่มส่ง + ร่าง
+    document.getElementById('btn-submit').disabled = true;
+    document.getElementById('btn-submit').textContent = '✅ ส่งคำขอแล้ว';
+    document.getElementById('btn-draft').disabled = true;
+    // แสดง success hint
+    const hint = document.getElementById('form-status-hint');
+    hint.innerHTML = '<span style="color:#15803d;font-weight:600;">✅ ส่งคำขอเรียบร้อยแล้ว — สถานะ: <strong>รอพิจารณา</strong></span>';
+    // เปลี่ยน alert เป็น redirect หลัง 2 วินาที
+    setTimeout(() => { location.href = 'case-request.html'; }, 2000);
+  }
+}
+
+// Init: prefill if ?req= param present, else show empty row
+const _urlParams = new URLSearchParams(location.search);
+const _reqId = parseInt(_urlParams.get('req'));
+if (_reqId && MOCK_REQ_DETAIL[_reqId]) {
+  prefillForm(MOCK_REQ_DETAIL[_reqId]);
+} else {
+  renderFileRows([{ name: '', req: false }]);
+}
+</script>
+</body>
+</html>

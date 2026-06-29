@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - ระบบติดตามคดี ขสมก.</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- Topbar -->
+  <header class="topbar" id="topbar"></header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">ภาพรวมการดำเนินงานคดี ณ วันที่ <span id="today-date"></span></p>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="grid-4 mb-24" id="kpi-row"></div>
+
+    <!-- Row: Stage Stats + Recent Activity -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+      <!-- Stage Distribution -->
+      <div class="card">
+        <div class="card-header-custom">
+          📊 คดีแยกตาม Stage
+          <a href="pages/case-list.html" style="font-size:20px;font-weight:400;">ดูทั้งหมด →</a>
+        </div>
+        <div class="card-body-custom" id="stage-chart"></div>
+      </div>
+
+      <!-- Category -->
+      <div class="card">
+        <div class="card-header-custom">🗂️ คดีแยกตามประเภทงาน</div>
+        <div class="card-body-custom" id="category-chart"></div>
+      </div>
+    </div>
+
+    <!-- Row: Cases Due Soon + Request Queue -->
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
+
+      <!-- Cases needing attention -->
+      <div class="card">
+        <div class="card-header-custom">
+          ⚠️ คดีที่ต้องดำเนินการ / ใกล้ครบกำหนด
+          <a href="pages/case-list.html" style="font-size:20px;font-weight:400;">ดูทั้งหมด →</a>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table-custom" id="alert-cases"></table>
+        </div>
+      </div>
+
+      <!-- Request Queue -->
+      <div class="card">
+        <div class="card-header-custom">
+          📥 คำขอรอพิจารณา
+          <a href="pages/case-request.html" style="font-size:20px;font-weight:400;">ดูทั้งหมด →</a>
+        </div>
+        <div id="request-queue"></div>
+      </div>
+    </div>
+
+    <!-- Recent Cases Table -->
+    <div class="card">
+      <div class="card-header-custom">
+        🕐 คดีล่าสุด
+        <a href="pages/case-list.html" style="font-size:20px;font-weight:400;">ดูทั้งหมด →</a>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="table-custom" id="recent-cases"></table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+// ─── Init ─────────────────────────────────────────────────────
+document.getElementById('sidebar').innerHTML = buildSidebar('dashboard')
+  .replace(/href="\.\.\/([^"]+)"/g, 'href="$1"')
+  .replace(/href="(?!#|index\.html)([^"]+\.html[^"]*)"/g, 'href="pages/$1"');
+document.getElementById('topbar').innerHTML = buildTopbar('หน้าหลัก', 'แดชบอร์ด');
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+// ─── KPI Cards ────────────────────────────────────────────────
+const kpiData = [
+  { icon: '📁', label: 'คดีทั้งหมด', value: MOCK_DASHBOARD_STATS.total_cases, sub: '+5 เดือนนี้', iconClass: 'blue', changeClass: 'up' },
+  { icon: '⚡', label: 'กำลังดำเนินการ', value: MOCK_DASHBOARD_STATS.active_cases, sub: `${Math.round(MOCK_DASHBOARD_STATS.active_cases/MOCK_DASHBOARD_STATS.total_cases*100)}% ของทั้งหมด`, iconClass: 'green', changeClass: 'up' },
+  { icon: '🔍', label: 'กลุ่มงานคดี', value: MOCK_DASHBOARD_STATS.pending_review, sub: 'หัวหน้างานต้องดำเนินการ', iconClass: 'orange', changeClass: '' },
+  { icon: '🔴', label: 'เกินกำหนด', value: MOCK_DASHBOARD_STATS.overdue, sub: 'ต้องดำเนินการด่วน', iconClass: 'red', changeClass: 'down' }
+];
+
+document.getElementById('kpi-row').innerHTML = kpiData.map(k => `
+  <div class="kpi-card">
+    <div class="kpi-icon ${k.iconClass}">${k.icon}</div>
+    <div>
+      <div class="kpi-value">${k.value.toLocaleString('th-TH')}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-change ${k.changeClass}">${k.sub}</div>
+    </div>
+  </div>`).join('');
+
+// ─── Stage Chart ──────────────────────────────────────────────
+const stages = MOCK_DASHBOARD_STATS.by_stage;
+const total = Object.values(stages).reduce((a,b)=>a+b,0);
+const stageConf = [
+  { key:'PREPARE', label:'เตรียมคดี', color:'#3b82f6' },
+  { key:'LITIGATION', label:'งานคดี', color:'#f59e0b' },
+  { key:'ENFORCEMENT', label:'บังคับคดี', color:'#ef4444' }
+];
+
+document.getElementById('stage-chart').innerHTML = stageConf.map(s => {
+  const pct = Math.round(stages[s.key]/total*100);
+  return `<div style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;font-size:22px;margin-bottom:6px;">
+      <span>${s.label}</span>
+      <span style="font-weight:700;">${stages[s.key]} คดี <span style="color:#9ca3af;font-weight:400;">(${pct}%)</span></span>
+    </div>
+    <div style="background:#f0f2f5;border-radius:4px;height:10px;overflow:hidden;">
+      <div style="width:${pct}%;background:${s.color};height:100%;border-radius:4px;transition:width .5s;"></div>
+    </div>
+  </div>`;
+}).join('') + `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #dfe1e2;font-size:22px;color:#71767a;">
+  งบประมาณเรียกร้องรวม: <strong style="color:#1b1b1b;">${fmtMoney(MOCK_DASHBOARD_STATS.total_claim)}</strong><br>
+  เรียกคืนได้แล้ว: <strong style="color:#00a91c;">${fmtMoney(MOCK_DASHBOARD_STATS.recovered)}</strong>
+</div>`;
+
+// ─── Category Chart ───────────────────────────────────────────
+const cats = MOCK_DASHBOARD_STATS.by_category;
+const catColors = { ACCIDENT:'#6366f1', CONTRACT_MANAGEMENT:'#0ea5e9', LEGAL_CONTRACT:'#10b981', ORG_DEFENDANT:'#f97316' };
+document.getElementById('category-chart').innerHTML = Object.entries(cats).map(([k,v]) => {
+  const pct = Math.round(v/total*100);
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <div style="width:10px;height:10px;border-radius:50%;background:${catColors[k]};flex-shrink:0;"></div>
+    <div style="flex:1;font-size:22px;">${getCategoryLabel(k)}</div>
+    <div style="width:60px;background:#f0f2f5;border-radius:4px;height:8px;overflow:hidden;">
+      <div style="width:${pct}%;background:${catColors[k]};height:100%;border-radius:4px;"></div>
+    </div>
+    <div style="font-weight:700;font-size:22px;width:36px;text-align:right;">${v}</div>
+  </div>`;
+}).join('');
+
+// ─── Alert Cases ──────────────────────────────────────────────
+const alertCases = MOCK_CASES.filter(c => c.current_status !== 'COMPLETE' && c.current_status !== 'ENFORCE_COMPLETE').slice(0,4);
+document.getElementById('alert-cases').innerHTML = `
+  <thead><tr>
+    <th>เลขคดี</th><th>เรื่อง</th><th>Stage</th><th>สถานะ</th><th></th>
+  </tr></thead>
+  <tbody>${alertCases.map(c => `<tr>
+    <td><a href="pages/case-detail.html?id=${c.case_id}" class="case-no">${c.case_no}</a></td>
+    <td><div class="case-title">${c.case_title.substring(0,35)}...</div>
+        <div class="case-title-sub">${getCategoryLabel(c.case_category)}</div></td>
+    <td>${getStageBadge(c.case_type)}</td>
+    <td>${getStatusBadge(c.current_status)}</td>
+    <td><a href="pages/case-detail.html?id=${c.case_id}" class="btn-custom btn-outline btn-xs">ดู</a></td>
+  </tr>`).join('')}</tbody>`;
+
+// ─── Request Queue ────────────────────────────────────────────
+document.getElementById('request-queue').innerHTML = MOCK_REQUESTS.slice(0,3).map(r => `
+  <div style="padding:12px 20px;border-bottom:1px solid #dfe1e2;display:flex;gap:10px;align-items:flex-start;">
+    <div style="flex:1;">
+      <div style="font-size:20px;color:#71767a;">${r.req_no} &bull; ${r.req_source}</div>
+      <div style="font-size:22px;font-weight:600;margin:2px 0;">${r.title.substring(0,40)}...</div>
+      <div style="font-size:30px;color:#71767a;">${fmtDate(r.req_date)}</div>
+    </div>
+    <span class="status-badge ${r.status_class}" style="white-space:nowrap;">${r.status_label}</span>
+  </div>`).join('') +
+  `<div style="padding:12px 20px;text-align:center;">
+    <a href="pages/case-request.html" class="btn-custom btn-outline btn-sm">ดูคำขอทั้งหมด</a>
+  </div>`;
+
+// ─── Recent Cases Table ───────────────────────────────────────
+document.getElementById('recent-cases').innerHTML = `
+  <thead><tr>
+    <th>เลขคดี</th><th>เรื่อง</th><th>ประเภท</th><th>Stage</th><th>สถานะ</th>
+    <th>มูลหนี้</th><th>ผู้รับผิดชอบ</th><th>อัปเดตล่าสุด</th><th></th>
+  </tr></thead>
+  <tbody>${MOCK_CASES.map(c => `<tr>
+    <td><a href="pages/case-detail.html?id=${c.case_id}" class="case-no">${c.case_no}</a></td>
+    <td><div class="case-title">${c.case_title.substring(0,36)}${c.case_title.length>36?'...':''}</div>
+        <div class="case-title-sub">${c.defendant}</div></td>
+    <td><span style="font-size:20px;">${getCategoryLabel(c.case_category)}</span></td>
+    <td>${getStageBadge(c.case_type)}</td>
+    <td>${getStatusBadge(c.current_status)}</td>
+    <td style="text-align:right;white-space:nowrap;">${Number(c.claim_amount).toLocaleString('th-TH',{minimumFractionDigits:0})} ฿</td>
+    <td style="font-size:20px;">${c.assignee}</td>
+    <td style="font-size:20px;color:#71767a;">${fmtDate(c.last_action)}</td>
+    <td><a href="pages/case-detail.html?id=${c.case_id}" class="btn-custom btn-outline btn-xs">รายละเอียด</a></td>
+  </tr>`).join('')}</tbody>`;
+</script>
+</body>
+</html>
