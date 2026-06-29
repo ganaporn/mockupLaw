@@ -504,7 +504,7 @@
 
           <!-- Role selector (mockup) -->
           <div class="form-group" style="margin-bottom:14px;">
-            <label class="form-label" style="font-size:20px;">สวมบทบาท (Mockup)</label>
+            <label class="form-label" style="font-size:20px;">ผู้บันทึก</label>
             <select class="form-control-custom" id="role-select" onchange="onRoleChange()"
               style="font-size:22px;max-width:400px;">
               <option value="admin_prepare">ธุรการ · เตรียมคดี</option>
@@ -590,19 +590,23 @@
         </div>
 
         <div class="timeline" id="timeline-list">
-          <!-- Mock entry 1 -->
+          <!-- Mock entry 3 (ล่าสุด) -->
           <div class="tl-item">
-            <div class="tl-dot casegroup"></div>
+            <div class="tl-dot prepare"></div>
             <div class="tl-header">
               <div>
-                <span class="tl-stage-tag" style="background:#ede9fe;color:#6d28d9;">🔑 กลุ่มงานคดี</span>
-                <span class="role-badge case-group" style="margin-left:6px;font-size:18px;">กลุ่มงานคดี</span>
+                <span class="tl-stage-tag" style="background:#dbeafe;color:#1e40af;">📁 เตรียมคดี</span>
+                <span class="role-badge lawyer" style="margin-left:6px;font-size:18px;">นิติกร</span>
               </div>
-              <span class="tl-time">28 พ.ค. 2568 · 09:15</span>
+              <span class="tl-time">10 มิ.ย. 2568 · 14:20</span>
             </div>
-            <div class="tl-actor" style="margin-bottom:4px;">👤 ธุรการกลุ่มงานคดี</div>
-            <div class="tl-body">รับเรื่องและ Assign งาน → <strong>เตรียมคดี</strong></div>
-            <div class="tl-sub">ตรวจสอบเอกสารเบื้องต้นครบถ้วน พร้อมส่งทีมเตรียมคดีดำเนินการ</div>
+            <div class="tl-actor" style="margin-bottom:4px;">👤 นิติกร · นายสมชาย ใจดี</div>
+            <div class="tl-body">นิติกรดำเนินการ — <strong>ทวงถาม</strong></div>
+            <div class="tl-sub">ส่งหนังสือทวงถามครั้งที่ 1 ทางไปรษณีย์ลงทะเบียน</div>
+            <div class="tl-files">
+              <span class="tl-file-chip">📄 หนังสือทวงถาม_001.pdf</span>
+              <span class="tl-file-chip">📄 ใบรับไปรษณีย์.pdf</span>
+            </div>
           </div>
 
           <!-- Mock entry 2 -->
@@ -623,23 +627,19 @@
             </div>
           </div>
 
-          <!-- Mock entry 3 -->
+          <!-- Mock entry 1 (เก่าสุด) -->
           <div class="tl-item">
-            <div class="tl-dot prepare"></div>
+            <div class="tl-dot casegroup"></div>
             <div class="tl-header">
               <div>
-                <span class="tl-stage-tag" style="background:#dbeafe;color:#1e40af;">📁 เตรียมคดี</span>
-                <span class="role-badge lawyer" style="margin-left:6px;font-size:18px;">นิติกร</span>
+                <span class="tl-stage-tag" style="background:#ede9fe;color:#6d28d9;">🔑 กลุ่มงานคดี</span>
+                <span class="role-badge case-group" style="margin-left:6px;font-size:18px;">กลุ่มงานคดี</span>
               </div>
-              <span class="tl-time">10 มิ.ย. 2568 · 14:20</span>
+              <span class="tl-time">28 พ.ค. 2568 · 09:15</span>
             </div>
-            <div class="tl-actor" style="margin-bottom:4px;">👤 นิติกร · นายสมชาย ใจดี</div>
-            <div class="tl-body">นิติกรดำเนินการ — <strong>ทวงถาม</strong></div>
-            <div class="tl-sub">ส่งหนังสือทวงถามครั้งที่ 1 ทางไปรษณีย์ลงทะเบียน</div>
-            <div class="tl-files">
-              <span class="tl-file-chip">📄 หนังสือทวงถาม_001.pdf</span>
-              <span class="tl-file-chip">📄 ใบรับไปรษณีย์.pdf</span>
-            </div>
+            <div class="tl-actor" style="margin-bottom:4px;">👤 ธุรการกลุ่มงานคดี</div>
+            <div class="tl-body">รับเรื่องและ Assign งาน → <strong>เตรียมคดี</strong></div>
+            <div class="tl-sub">ตรวจสอบเอกสารเบื้องต้นครบถ้วน พร้อมส่งทีมเตรียมคดีดำเนินการ</div>
           </div>
         </div>
 
@@ -736,7 +736,7 @@ const ROLE_STATUS_MAP = {
       { value: 'SUB_DEMAND',    label: 'ทวงถาม' },
       { value: 'SUB_NO_SUE',   label: 'ขออนุมัติไม่ฟ้อง' },
       { value: 'SUB_WRITE_OFF',label: 'จำหน่ายหนี้' },
-      { value: 'REVIEW',        label: '✅ ส่งสอบทาน (หัวหน้างาน)' },
+      { value: 'REVIEW',        label: 'ส่งสอบทาน (หัวหน้างาน)' },
     ],
     subStatuses: {}
   },
@@ -778,7 +778,7 @@ const ROLE_STATUS_MAP = {
       { value: 'SUB_PLEA',       label: 'ยื่นคำให้การ' },
       { value: 'SEND_PREPARE',   label: 'ส่งเรื่องคืนงานเตรียมคดี' },
       { value: 'DONE',           label: 'เสร็จสิ้น' },
-      { value: 'REVIEW',         label: '✅ ส่งสอบทาน (หัวหน้างาน)' },
+      { value: 'REVIEW',         label: 'ส่งสอบทาน (หัวหน้างาน)' },
     ],
     subStatuses: {}
   },
@@ -867,12 +867,14 @@ function onRoleChange() {
 
   // update badge
   const badge = document.getElementById('current-role-badge');
-  badge.className = `role-badge ${cfg.badge}`;
-  badge.textContent = '👤 ' + cfg.label;
+  if (badge) {
+    badge.className = `role-badge ${cfg.badge}`;
+    badge.textContent = '👤 ' + cfg.label;
+  }
 
   // update status label
   const lbl = document.getElementById('entry-status-label');
-  if (lbl) lbl.textContent = (cfg.statusLabel || 'สถานะที่บันทึก') + ' *';
+  if (lbl) lbl.innerHTML = `${cfg.statusLabel || 'สถานะที่บันทึก'} <span class="req">*</span>`;
 
   // populate statuses
   const sel = document.getElementById('entry-status');
